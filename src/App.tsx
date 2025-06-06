@@ -7,7 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/admin/AdminLayout";
+import ArticleManagement from "./components/admin/ArticleManagement";
+import CategoryManagement from "./components/admin/CategoryManagement";
+import UserManagement from "./components/admin/UserManagement";
+import SiteSettings from "./components/admin/SiteSettings";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +27,17 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/*" element={
+              <AdminLayout>
+                <Routes>
+                  <Route path="articles" element={<ArticleManagement />} />
+                  <Route path="categories" element={<CategoryManagement />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="settings" element={<SiteSettings />} />
+                </Routes>
+              </AdminLayout>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

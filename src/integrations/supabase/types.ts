@@ -19,6 +19,10 @@ export type Database = {
           featured: boolean | null
           featured_image_url: string | null
           id: string
+          meta_description: string | null
+          meta_keywords: string | null
+          meta_title: string | null
+          og_image_url: string | null
           published: boolean | null
           slug: string
           title: string
@@ -33,6 +37,10 @@ export type Database = {
           featured?: boolean | null
           featured_image_url?: string | null
           id?: string
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           published?: boolean | null
           slug: string
           title: string
@@ -47,6 +55,10 @@ export type Database = {
           featured?: boolean | null
           featured_image_url?: string | null
           id?: string
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           published?: boolean | null
           slug?: string
           title?: string
@@ -164,36 +176,63 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          favicon_url: string | null
           hero_image_url: string | null
           hero_subtitle: string | null
           hero_title: string | null
           id: string
+          logo_url: string | null
+          meta_description: string | null
+          meta_keywords: string | null
+          meta_title: string | null
           primary_color: string | null
           secondary_color: string | null
           site_description: string | null
           site_name: string | null
+          social_facebook: string | null
+          social_instagram: string | null
+          social_linkedin: string | null
+          social_twitter: string | null
           updated_at: string | null
         }
         Insert: {
+          favicon_url?: string | null
           hero_image_url?: string | null
           hero_subtitle?: string | null
           hero_title?: string | null
           id?: string
+          logo_url?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           site_description?: string | null
           site_name?: string | null
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_twitter?: string | null
           updated_at?: string | null
         }
         Update: {
+          favicon_url?: string | null
           hero_image_url?: string | null
           hero_subtitle?: string | null
           hero_title?: string | null
           id?: string
+          logo_url?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           site_description?: string | null
           site_name?: string | null
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_linkedin?: string | null
+          social_twitter?: string | null
           updated_at?: string | null
         }
         Relationships: []
