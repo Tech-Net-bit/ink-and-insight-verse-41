@@ -1,65 +1,123 @@
 
+import { useState, useEffect } from 'react';
 import ArticleCard from './ArticleCard';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Article {
+  id: string;
+  title: string;
+  excerpt: string;
+  featured_image_url: string;
+  slug: string;
+  created_at: string;
+  categories: { name: string } | null;
+  profiles: { full_name: string };
+}
 
 const ArticleGrid = () => {
-  const articles = [
-    {
-      title: "iPhone 15 Pro Max Review: The Ultimate Camera Phone",
-      excerpt: "Apple's latest flagship delivers exceptional performance and camera capabilities. We dive deep into what makes this device stand out in the crowded smartphone market.",
-      category: "Mobile",
-      readTime: "8 min read",
-      publishedAt: "2 hours ago",
-      rating: 4.8,
-      imageUrl: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80",
-      type: "review" as const
-    },
-    {
-      title: "AI Revolution: How Machine Learning is Transforming Healthcare",
-      excerpt: "Exploring the latest developments in artificial intelligence and its profound impact on medical diagnosis, treatment, and patient care.",
-      category: "AI & ML",
-      readTime: "12 min read",
-      publishedAt: "5 hours ago",
-      imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80",
-      type: "blog" as const
-    },
-    {
-      title: "Breaking: Tech Giants Announce New Privacy Standards",
-      excerpt: "Major technology companies have jointly announced new privacy protection measures that will reshape how user data is handled across platforms.",
-      category: "News",
-      readTime: "4 min read",
-      publishedAt: "1 hour ago",
-      imageUrl: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=800&q=80",
-      type: "news" as const
-    },
-    {
-      title: "The Best Gaming Laptops of 2024: Performance Meets Portability",
-      excerpt: "Our comprehensive review of the top gaming laptops this year, comparing performance, battery life, and value for money.",
-      category: "Gaming",
-      readTime: "15 min read",
-      publishedAt: "1 day ago",
-      rating: 4.6,
-      imageUrl: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&w=800&q=80",
-      type: "review" as const
-    },
-    {
-      title: "The Future of Remote Work: Tools and Technologies Shaping Tomorrow",
-      excerpt: "How emerging technologies are revolutionizing the way we work from anywhere, creating new opportunities and challenges for businesses.",
-      category: "Technology",
-      readTime: "10 min read",
-      publishedAt: "2 days ago",
-      imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80",
-      type: "blog" as const
-    },
-    {
-      title: "Electric Vehicle Market Surges with New Battery Technology",
-      excerpt: "Revolutionary battery innovations are driving unprecedented growth in the electric vehicle sector, promising longer ranges and faster charging.",
-      category: "Innovation",
-      readTime: "6 min read",
-      publishedAt: "3 days ago",
-      imageUrl: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80",
-      type: "news" as const
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async (pageNum = 1) => {
+    try {
+      const limit = 6;
+      const offset = (pageNum - 1) * limit;
+
+      const { data, error } = await supabase
+        .from('articles')
+        .select(`
+          id,
+          title,
+          excerpt,
+          featured_image_url,
+          slug,
+          created_at,
+          categories (name),
+          profiles (full_name)
+        `)
+        .eq('published', true)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error('Error fetching articles:', error);
+        return;
+      }
+
+      if (pageNum === 1) {
+        setArticles(data || []);
+      } else {
+        setArticles(prev => [...prev, ...(data || [])]);
+      }
+
+      setHasMore((data || []).length === limit);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchArticles(nextPage);
+  };
+
+  const getReadTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const wordCount = content ? content.split(' ').length : 0;
+    return Math.ceil(wordCount / wordsPerMinute);
+  };
+
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minutes ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hours ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} days ago`;
+    }
+  };
+
+  if (loading && articles.length === 0) {
+    return (
+      <section className="py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mx-auto"></div>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-48 bg-gray-200 rounded-t-xl"></div>
+                <div className="p-6 space-y-4">
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-6 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16">
@@ -71,20 +129,43 @@ const ArticleGrid = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {articles.map((article, index) => (
-            <ArticleCard
-              key={index}
-              {...article}
-            />
-          ))}
-        </div>
+        {articles.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No articles found. Check back later for new content!
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {articles.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  title={article.title}
+                  excerpt={article.excerpt || ''}
+                  category={article.categories?.name || 'Uncategorized'}
+                  readTime={`${getReadTime(article.excerpt || '')} min read`}
+                  publishedAt={getRelativeTime(article.created_at)}
+                  imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                  type="blog"
+                  articleId={article.id}
+                />
+              ))}
+            </div>
 
-        <div className="text-center mt-12">
-          <button className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 hover:scale-105 transform">
-            Load More Articles
-          </button>
-        </div>
+            {hasMore && (
+              <div className="text-center mt-12">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 hover:scale-105 transform disabled:opacity-50"
+                >
+                  {loading ? 'Loading...' : 'Load More Articles'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   );
