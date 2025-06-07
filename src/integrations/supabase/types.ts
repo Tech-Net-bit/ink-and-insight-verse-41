@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       articles: {
         Row: {
+          article_type: Database["public"]["Enums"]["article_type"] | null
           author_id: string
           category_id: string | null
           content: string
@@ -24,11 +25,13 @@ export type Database = {
           meta_title: string | null
           og_image_url: string | null
           published: boolean | null
+          reading_time: number | null
           slug: string
           title: string
           updated_at: string | null
         }
         Insert: {
+          article_type?: Database["public"]["Enums"]["article_type"] | null
           author_id: string
           category_id?: string | null
           content: string
@@ -42,11 +45,13 @@ export type Database = {
           meta_title?: string | null
           og_image_url?: string | null
           published?: boolean | null
+          reading_time?: number | null
           slug: string
           title: string
           updated_at?: string | null
         }
         Update: {
+          article_type?: Database["public"]["Enums"]["article_type"] | null
           author_id?: string
           category_id?: string | null
           content?: string
@@ -60,6 +65,7 @@ export type Database = {
           meta_title?: string | null
           og_image_url?: string | null
           published?: boolean | null
+          reading_time?: number | null
           slug?: string
           title?: string
           updated_at?: string | null
@@ -245,6 +251,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      article_type: "news" | "product_review" | "blog"
       user_role: "admin" | "user"
     }
     CompositeTypes: {
@@ -361,6 +368,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      article_type: ["news", "product_review", "blog"],
       user_role: ["admin", "user"],
     },
   },

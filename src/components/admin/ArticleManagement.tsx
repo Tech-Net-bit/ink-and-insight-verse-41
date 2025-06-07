@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, EyeOff, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ArticleEditor from './ArticleEditor';
 
@@ -17,6 +17,8 @@ interface Article {
   published: boolean;
   featured: boolean;
   created_at: string;
+  article_type: 'news' | 'product_review' | 'blog';
+  reading_time: number;
   categories: { name: string } | null;
   profiles: { full_name: string } | null;
 }
@@ -45,6 +47,8 @@ const ArticleManagement = () => {
           published,
           featured,
           created_at,
+          article_type,
+          reading_time,
           categories (name),
           profiles (full_name)
         `)
@@ -119,6 +123,32 @@ const ArticleManagement = () => {
     }
   };
 
+  const getArticleTypeColor = (type: string) => {
+    switch (type) {
+      case 'news':
+        return 'bg-blue-100 text-blue-800';
+      case 'product_review':
+        return 'bg-green-100 text-green-800';
+      case 'blog':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getArticleTypeLabel = (type: string) => {
+    switch (type) {
+      case 'news':
+        return 'News';
+      case 'product_review':
+        return 'Product Review';
+      case 'blog':
+        return 'Blog Post';
+      default:
+        return type;
+    }
+  };
+
   const filteredArticles = articles.filter(article =>
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     article.excerpt?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -181,15 +211,24 @@ const ArticleManagement = () => {
                     <CardDescription className="line-clamp-2">
                       {article.excerpt}
                     </CardDescription>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 flex-wrap">
                       <Badge variant={article.published ? 'default' : 'secondary'}>
                         {article.published ? 'Published' : 'Draft'}
                       </Badge>
                       {article.featured && (
                         <Badge variant="outline">Featured</Badge>
                       )}
+                      <Badge className={getArticleTypeColor(article.article_type)}>
+                        {getArticleTypeLabel(article.article_type)}
+                      </Badge>
                       {article.categories && (
                         <Badge variant="outline">{article.categories.name}</Badge>
+                      )}
+                      {article.reading_time > 0 && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {article.reading_time} min read
+                        </Badge>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">

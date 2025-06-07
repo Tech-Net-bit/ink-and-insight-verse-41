@@ -12,6 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface ArticleEditorProps {
   articleId?: string | null;
@@ -36,6 +38,8 @@ interface ArticleFormData {
   meta_description: string;
   meta_keywords: string;
   og_image_url: string;
+  article_type: 'news' | 'product_review' | 'blog';
+  reading_time: number;
 }
 
 const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
@@ -56,7 +60,31 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
     meta_description: '',
     meta_keywords: '',
     og_image_url: '',
+    article_type: 'blog',
+    reading_time: 0,
   });
+
+  // Quill editor modules configuration
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      [{ 'direction': 'rtl' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image', 'video'],
+      ['clean']
+    ],
+  };
+
+  const formats = [
+    'header', 'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet', 'script', 'indent', 'direction',
+    'color', 'background', 'align', 'link', 'image', 'video'
+  ];
 
   useEffect(() => {
     fetchCategories();
@@ -76,6 +104,11 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
       setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch categories',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -103,6 +136,8 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
         meta_description: data.meta_description || '',
         meta_keywords: data.meta_keywords || '',
         og_image_url: data.og_image_url || '',
+        article_type: data.article_type || 'blog',
+        reading_time: data.reading_time || 0,
       });
     } catch (error) {
       console.error('Error fetching article:', error);
@@ -123,25 +158,82 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
       .trim();
   };
 
+  const calculateReadingTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const textContent = content.replace(/<[^>]*>/g, '');
+    const wordCount = textContent.split(/\s+/).length;
+    return Math.ceil(wordCount / wordsPerMinute);
+  };
+
   const handleTitleChange = (title: string) => {
     setFormData(prev => ({
       ...prev,
       title,
       slug: generateSlug(title),
+      meta_title: prev.meta_title || title,
+    }));
+  };
+
+  const handleContentChange = (content: string) => {
+    const readingTime = calculateReadingTime(content);
+    setFormData(prev => ({
+      ...prev,
+      content,
+      reading_time: readingTime,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to create articles',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Title is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Content is required',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
       const articleData = {
-        ...formData,
+        title: formData.title.trim(),
+        slug: formData.slug.trim(),
+        excerpt: formData.excerpt?.trim() || null,
+        content: formData.content.trim(),
+        featured_image_url: formData.featured_image_url?.trim() || null,
+        category_id: formData.category_id || null,
+        published: formData.published,
+        featured: formData.featured,
+        meta_title: formData.meta_title?.trim() || null,
+        meta_description: formData.meta_description?.trim() || null,
+        meta_keywords: formData.meta_keywords?.trim() || null,
+        og_image_url: formData.og_image_url?.trim() || null,
+        article_type: formData.article_type,
+        reading_time: formData.reading_time,
         author_id: user.id,
         updated_at: new Date().toISOString(),
       };
+
+      console.log('Submitting article data:', articleData);
 
       if (articleId) {
         const { error } = await supabase
@@ -149,7 +241,10 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
           .update(articleData)
           .eq('id', articleId);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast({
           title: 'Success',
           description: 'Article updated successfully',
@@ -159,7 +254,10 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
           .from('articles')
           .insert([articleData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         toast({
           title: 'Success',
           description: 'Article created successfully',
@@ -167,11 +265,11 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving article:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save article',
+        description: error.message || 'Failed to save article',
         variant: 'destructive',
       });
     } finally {
@@ -212,7 +310,7 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title">Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
@@ -223,7 +321,7 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
+                  <Label htmlFor="slug">Slug *</Label>
                   <Input
                     id="slug"
                     value={formData.slug}
@@ -231,6 +329,20 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                     placeholder="article-slug"
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="article_type">Article Type</Label>
+                  <Select value={formData.article_type} onValueChange={(value: 'news' | 'product_review' | 'blog') => setFormData(prev => ({ ...prev, article_type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select article type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="blog">Blog Post</SelectItem>
+                      <SelectItem value="news">News Article</SelectItem>
+                      <SelectItem value="product_review">Product Review</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -245,15 +357,21 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
-                  <Textarea
-                    id="content"
-                    value={formData.content}
-                    onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                    placeholder="Write your article content here..."
-                    rows={20}
-                    required
-                  />
+                  <Label htmlFor="content">Content *</Label>
+                  <div className="min-h-[400px]">
+                    <ReactQuill
+                      theme="snow"
+                      value={formData.content}
+                      onChange={handleContentChange}
+                      modules={modules}
+                      formats={formats}
+                      placeholder="Write your article content here..."
+                      style={{ height: '300px', marginBottom: '50px' }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Estimated reading time: {formData.reading_time} minute(s)
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -283,7 +401,9 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                     value={formData.meta_title}
                     onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
                     placeholder="SEO optimized title"
+                    maxLength={60}
                   />
+                  <p className="text-xs text-gray-500">{formData.meta_title.length}/60 characters</p>
                 </div>
 
                 <div className="space-y-2">
@@ -294,7 +414,9 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                     onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
                     placeholder="SEO meta description"
                     rows={3}
+                    maxLength={160}
                   />
+                  <p className="text-xs text-gray-500">{formData.meta_description.length}/160 characters</p>
                 </div>
 
                 <div className="space-y-2">
@@ -365,7 +487,7 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-6">
           <Button type="submit" disabled={loading}>
             <Save className="mr-2 h-4 w-4" />
             {loading ? 'Saving...' : 'Save Article'}
