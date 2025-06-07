@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Users, MessageCircle, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, Users, MessageCircle, Eye, Database, BarChart } from 'lucide-react';
 
 interface DashboardStats {
   totalArticles: number;
@@ -140,18 +141,31 @@ const AdminDashboard = () => {
               <div className="text-sm text-muted-foreground">Write and publish a new blog post</div>
             </a>
             <a
+              href="/admin/database"
+              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <div className="font-medium flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Database Manager
+              </div>
+              <div className="text-sm text-muted-foreground">Execute SQL queries and manage data</div>
+            </a>
+            <a
+              href="/admin/usage"
+              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <div className="font-medium flex items-center gap-2">
+                <BarChart className="h-4 w-4" />
+                Usage & Limits
+              </div>
+              <div className="text-sm text-muted-foreground">Monitor Supabase plan usage and limits</div>
+            </a>
+            <a
               href="/admin/settings"
               className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <div className="font-medium">Site Settings</div>
               <div className="text-sm text-muted-foreground">Customize your site appearance and SEO</div>
-            </a>
-            <a
-              href="/admin/categories"
-              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <div className="font-medium">Manage Categories</div>
-              <div className="text-sm text-muted-foreground">Add or edit article categories</div>
             </a>
           </CardContent>
         </Card>

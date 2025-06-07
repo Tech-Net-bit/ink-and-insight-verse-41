@@ -10,10 +10,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { ArrowLeft, Save, FileText, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import ArticleTemplates from './ArticleTemplates';
+import ImageUpload from './ImageUpload';
 
 interface ArticleEditorProps {
   articleId?: string | null;
@@ -42,11 +45,23 @@ interface ArticleFormData {
   reading_time: number;
 }
 
+interface Template {
+  id: string;
+  title: string;
+  type: 'blog' | 'news' | 'product_review';
+  description: string;
+  content: string;
+  featured: boolean;
+}
+
 const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [showTemplates, setShowTemplates] = useState(!articleId);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [currentImageField, setCurrentImageField] = useState<'featured' | 'og'>('featured');
   const [formData, setFormData] = useState<ArticleFormData>({
     title: '',
     slug: '',
@@ -76,6 +91,7 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
       [{ 'color': [] }, { 'background': [] }],
       [{ 'align': [] }],
       ['link', 'image', 'video'],
+      ['blockquote', 'code-block'],
       ['clean']
     ],
   };
@@ -83,7 +99,8 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
   const formats = [
     'header', 'bold', 'italic', 'underline', 'strike',
     'list', 'bullet', 'script', 'indent', 'direction',
-    'color', 'background', 'align', 'link', 'image', 'video'
+    'color', 'background', 'align', 'link', 'image', 'video',
+    'blockquote', 'code-block'
   ];
 
   useEffect(() => {
@@ -183,6 +200,33 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
     }));
   };
 
+  const handleTemplateSelect = (template: Template) => {
+    setFormData(prev => ({
+      ...prev,
+      title: template.title,
+      slug: generateSlug(template.title),
+      content: template.content,
+      article_type: template.type,
+      meta_title: template.title,
+      reading_time: calculateReadingTime(template.content),
+    }));
+    setShowTemplates(false);
+  };
+
+  const openImageUpload = (field: 'featured' | 'og') => {
+    setCurrentImageField(field);
+    setShowImageUpload(true);
+  };
+
+  const handleImageUpload = (url: string) => {
+    if (currentImageField === 'featured') {
+      setFormData(prev => ({ ...prev, featured_image_url: url }));
+    } else {
+      setFormData(prev => ({ ...prev, og_image_url: url }));
+    }
+    setShowImageUpload(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -277,21 +321,41 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
     }
   };
 
+  if (showTemplates) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={() => setShowTemplates(false)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Editor
+          </Button>
+        </div>
+        <ArticleTemplates onSelectTemplate={handleTemplateSelect} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button variant="outline" onClick={onClose}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {articleId ? 'Edit Article' : 'Create Article'}
-          </h1>
-          <p className="text-muted-foreground">
-            {articleId ? 'Update your article' : 'Write a new blog post'}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={onClose}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {articleId ? 'Edit Article' : 'Create Article'}
+            </h1>
+            <p className="text-muted-foreground">
+              {articleId ? 'Update your article' : 'Write a new blog post'}
+            </p>
+          </div>
         </div>
+        <Button onClick={() => setShowTemplates(true)} variant="outline">
+          <FileText className="mr-2 h-4 w-4" />
+          Browse Templates
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -375,13 +439,32 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="featured_image">Featured Image URL</Label>
-                  <Input
-                    id="featured_image"
-                    value={formData.featured_image_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, featured_image_url: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  <Label>Featured Image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.featured_image_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, featured_image_url: e.target.value }))}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    <Dialog open={showImageUpload && currentImageField === 'featured'} onOpenChange={(open) => !open && setShowImageUpload(false)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openImageUpload('featured')}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl">
+                        <ImageUpload
+                          value={formData.featured_image_url}
+                          onChange={handleImageUpload}
+                          onClose={() => setShowImageUpload(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -430,13 +513,32 @@ const ArticleEditor = ({ articleId, onClose }: ArticleEditorProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="og_image">Open Graph Image</Label>
-                  <Input
-                    id="og_image"
-                    value={formData.og_image_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, og_image_url: e.target.value }))}
-                    placeholder="https://example.com/og-image.jpg"
-                  />
+                  <Label>Open Graph Image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.og_image_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, og_image_url: e.target.value }))}
+                      placeholder="https://example.com/og-image.jpg"
+                    />
+                    <Dialog open={showImageUpload && currentImageField === 'og'} onOpenChange={(open) => !open && setShowImageUpload(false)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openImageUpload('og')}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl">
+                        <ImageUpload
+                          value={formData.og_image_url}
+                          onChange={handleImageUpload}
+                          onClose={() => setShowImageUpload(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

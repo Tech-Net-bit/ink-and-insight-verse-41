@@ -14,6 +14,8 @@ import ArticleManagement from "./components/admin/ArticleManagement";
 import CategoryManagement from "./components/admin/CategoryManagement";
 import UserManagement from "./components/admin/UserManagement";
 import SiteSettings from "./components/admin/SiteSettings";
+import DatabaseManager from "./components/admin/DatabaseManager";
+import UsageLimits from "./components/admin/UsageLimits";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ const App = () => (
                   <Route path="categories" element={<CategoryManagement />} />
                   <Route path="users" element={<UserManagement />} />
                   <Route path="settings" element={<SiteSettings />} />
+                  <Route path="database" element={<DatabaseManager />} />
+                  <Route path="usage" element={<UsageLimits />} />
                 </Routes>
               </AdminLayout>
             } />

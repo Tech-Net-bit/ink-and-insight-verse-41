@@ -243,12 +243,72 @@ export type Database = {
         }
         Relationships: []
       }
+      sql_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          sql_query: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sql_query: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sql_query?: string
+        }
+        Relationships: []
+      }
+      usage_limits: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_updated: string | null
+          total_articles: number | null
+          total_comments: number | null
+          total_storage_mb: number | null
+          total_users: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          total_articles?: number | null
+          total_comments?: number | null
+          total_storage_mb?: number | null
+          total_users?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          total_articles?: number | null
+          total_comments?: number | null
+          total_storage_mb?: number | null
+          total_users?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_usage_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       article_type: "news" | "product_review" | "blog"
