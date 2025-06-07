@@ -10,6 +10,7 @@ interface Article {
   featured_image_url: string;
   slug: string;
   created_at: string;
+  article_type: string;
   categories: { name: string } | null;
   profiles: { full_name: string };
 }
@@ -38,6 +39,7 @@ const ArticleGrid = () => {
           featured_image_url,
           slug,
           created_at,
+          article_type,
           categories (name),
           profiles (full_name)
         `)
@@ -147,8 +149,9 @@ const ArticleGrid = () => {
                   readTime={`${getReadTime(article.excerpt || '')} min read`}
                   publishedAt={getRelativeTime(article.created_at)}
                   imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
-                  type="blog"
+                  type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
                   articleId={article.id}
+                  slug={article.slug}
                 />
               ))}
             </div>

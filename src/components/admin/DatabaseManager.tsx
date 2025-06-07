@@ -4,9 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Database, Play, Copy, Trash2, Plus } from 'lucide-react';
+import { Database, Play, History, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SqlTemplate {
@@ -17,18 +16,12 @@ interface SqlTemplate {
   category: string;
 }
 
-interface QueryResult {
-  data: any[];
-  error: string | null;
-  executionTime: number;
-}
-
 const DatabaseManager = () => {
   const [templates, setTemplates] = useState<SqlTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [sqlQuery, setSqlQuery] = useState('');
-  const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
-  const [isExecuting, setIsExecuting] = useState(false);
+  const [selectedQuery, setSelectedQuery] = useState('');
+  const [queryResult, setQueryResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,97 +40,88 @@ const DatabaseManager = () => {
     } catch (error) {
       console.error('Error fetching templates:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to fetch SQL templates',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load SQL templates",
+        variant: "destructive",
       });
+    } finally {
+      setLoadingTemplates(false);
     }
   };
 
   const executeQuery = async () => {
-    if (!sqlQuery.trim()) {
+    if (!selectedQuery.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a SQL query',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please enter a SQL query",
+        variant: "destructive",
       });
       return;
     }
 
-    setIsExecuting(true);
-    const startTime = Date.now();
-
-    try {
-      // For security, only allow SELECT statements
-      if (!sqlQuery.trim().toLowerCase().startsWith('select')) {
-        throw new Error('Only SELECT queries are allowed for security reasons');
-      }
-
-      const { data, error } = await supabase.rpc('execute_sql', {
-        query: sqlQuery
+    // Only allow SELECT queries for safety
+    if (!selectedQuery.trim().toLowerCase().startsWith('select')) {
+      toast({
+        title: "Error",
+        description: "Only SELECT queries are allowed for safety",
+        variant: "destructive",
       });
+      return;
+    }
 
-      const executionTime = Date.now() - startTime;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('execute_sql', {
+        query: selectedQuery
+      });
 
       if (error) throw error;
 
-      setQueryResult({
-        data: data || [],
-        error: null,
-        executionTime
-      });
-
+      setQueryResult(data);
       toast({
-        title: 'Success',
-        description: `Query executed successfully in ${executionTime}ms`,
+        title: "Success",
+        description: "Query executed successfully",
       });
     } catch (error: any) {
-      const executionTime = Date.now() - startTime;
-      setQueryResult({
-        data: [],
-        error: error.message,
-        executionTime
-      });
-
+      console.error('Error executing query:', error);
       toast({
-        title: 'Query Error',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to execute query",
+        variant: "destructive",
       });
+      setQueryResult(null);
     } finally {
-      setIsExecuting(false);
+      setLoading(false);
     }
   };
 
-  const loadTemplate = (templateId: string) => {
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      setSqlQuery(template.sql_query);
-      setSelectedTemplate(templateId);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copied',
-      description: 'Query copied to clipboard',
-    });
-  };
-
-  const clearQuery = () => {
-    setSqlQuery('');
-    setSelectedTemplate('');
+  const selectTemplate = (template: SqlTemplate) => {
+    setSelectedQuery(template.sql_query);
     setQueryResult(null);
   };
 
-  const groupedTemplates = templates.reduce((acc, template) => {
-    if (!acc[template.category]) {
-      acc[template.category] = [];
-    }
-    acc[template.category].push(template);
-    return acc;
-  }, {} as Record<string, SqlTemplate[]>);
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      articles: 'bg-blue-100 text-blue-800',
+      users: 'bg-green-100 text-green-800',
+      reviews: 'bg-purple-100 text-purple-800',
+      storage: 'bg-orange-100 text-orange-800',
+      database: 'bg-gray-100 text-gray-800',
+      general: 'bg-gray-100 text-gray-800',
+    };
+    return colors[category] || colors.general;
+  };
+
+  if (loadingTemplates) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-64 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-96"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -146,185 +130,91 @@ const DatabaseManager = () => {
           <Database className="h-8 w-8" />
           Database Manager
         </h1>
-        <p className="text-muted-foreground">Execute SQL queries and manage your database</p>
+        <p className="text-muted-foreground">
+          Execute SQL queries and manage your database safely
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>SQL Query Editor</CardTitle>
-              <CardDescription>
-                Write and execute SQL queries. Only SELECT statements are allowed for security.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Select value={selectedTemplate} onValueChange={loadTemplate}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Load a template..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(groupedTemplates).map(([category, categoryTemplates]) => (
-                      <div key={category}>
-                        <div className="px-2 py-1 text-sm font-medium text-muted-foreground capitalize">
-                          {category}
-                        </div>
-                        {categoryTemplates.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </div>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" onClick={clearQuery}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <Textarea
-                value={sqlQuery}
-                onChange={(e) => setSqlQuery(e.target.value)}
-                placeholder="Enter your SQL query here..."
-                className="min-h-[200px] font-mono text-sm"
-              />
-
-              <div className="flex gap-2">
-                <Button 
-                  onClick={executeQuery} 
-                  disabled={isExecuting}
-                  className="flex-1"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  {isExecuting ? 'Executing...' : 'Execute Query'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => copyToClipboard(sqlQuery)}
-                  disabled={!sqlQuery}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {queryResult && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Query Results
-                  <Badge variant="outline">
-                    {queryResult.executionTime}ms
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>SQL Templates</CardTitle>
+            <CardDescription>
+              Pre-built queries for common database operations
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {templates.map((template) => (
+              <div
+                key={template.id}
+                className="p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => selectTemplate(template)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">{template.name}</h4>
+                  <Badge className={getCategoryColor(template.category)}>
+                    {template.category}
                   </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {queryResult.error ? (
-                  <div className="text-red-600 bg-red-50 p-4 rounded-lg">
-                    <strong>Error:</strong> {queryResult.error}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-sm text-muted-foreground">
-                      {queryResult.data.length} rows returned
-                    </div>
-                    {queryResult.data.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-300">
-                          <thead>
-                            <tr className="bg-gray-50">
-                              {Object.keys(queryResult.data[0]).map((column) => (
-                                <th key={column} className="border border-gray-300 px-4 py-2 text-left font-medium">
-                                  {column}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {queryResult.data.slice(0, 100).map((row, index) => (
-                              <tr key={index} className="hover:bg-gray-50">
-                                {Object.values(row).map((value, cellIndex) => (
-                                  <td key={cellIndex} className="border border-gray-300 px-4 py-2 text-sm">
-                                    {value !== null ? String(value) : <span className="text-gray-400">NULL</span>}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        {queryResult.data.length > 100 && (
-                          <div className="text-sm text-muted-foreground mt-2">
-                            Showing first 100 rows of {queryResult.data.length} total rows
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-muted-foreground">No data returned</div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Templates</CardTitle>
-              <CardDescription>Pre-built queries for common tasks</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {Object.entries(groupedTemplates).map(([category, categoryTemplates]) => (
-                <div key={category} className="space-y-2">
-                  <h4 className="font-medium text-sm capitalize text-muted-foreground">
-                    {category}
-                  </h4>
-                  {categoryTemplates.map((template) => (
-                    <Button
-                      key={template.id}
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start text-left h-auto p-3"
-                      onClick={() => loadTemplate(template.id)}
-                    >
-                      <div>
-                        <div className="font-medium">{template.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {template.description}
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Database Schema</CardTitle>
-              <CardDescription>Quick reference for table structures</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-sm space-y-1">
-                <div className="font-medium">Main Tables:</div>
-                <div className="pl-2 space-y-1 text-muted-foreground">
-                  <div>• articles (id, title, content, author_id...)</div>
-                  <div>• profiles (id, email, full_name, role...)</div>
-                  <div>• categories (id, name, slug...)</div>
-                  <div>• reviews (id, article_id, user_id, rating...)</div>
-                  <div>• site_settings (id, site_name, meta_title...)</div>
-                  <div>• usage_limits (id, total_articles, total_users...)</div>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  {template.description}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Query Editor</CardTitle>
+            <CardDescription>
+              Write and execute your SQL queries (SELECT only)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+              <div className="text-sm text-yellow-800">
+                <strong>Safety Notice:</strong> Only SELECT queries are allowed to prevent data modification.
+              </div>
+            </div>
+            
+            <Textarea
+              placeholder="SELECT * FROM articles WHERE published = true;"
+              value={selectedQuery}
+              onChange={(e) => setSelectedQuery(e.target.value)}
+              className="min-h-32 font-mono text-sm"
+            />
+            
+            <Button 
+              onClick={executeQuery} 
+              disabled={loading || !selectedQuery.trim()}
+              className="w-full"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              {loading ? 'Executing...' : 'Execute Query'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {queryResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Query Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-gray-50 rounded-lg p-4 overflow-auto">
+              <pre className="text-sm">
+                {JSON.stringify(queryResult, null, 2)}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
