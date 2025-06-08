@@ -30,37 +30,56 @@ export const useSiteSettings = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSiteSettings();
+    let channel: any = null;
 
-    // Listen for real-time updates to site settings
-    const channel = supabase
-      .channel('site-settings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'site_settings'
-        },
-        (payload) => {
-          console.log('Site settings updated:', payload);
-          setSettings(payload.new as SiteSettings);
-        }
-      )
-      .subscribe();
+    const setupSubscription = async () => {
+      // Initial fetch
+      await fetchSiteSettings();
 
-    // Listen for custom events from the admin panel
-    const handleSettingsUpdate = () => {
-      fetchSiteSettings();
+      // Create a unique channel name to avoid conflicts
+      const channelName = `site-settings-${Date.now()}-${Math.random()}`;
+      
+      // Listen for real-time updates to site settings
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'site_settings'
+          },
+          (payload) => {
+            console.log('Site settings updated:', payload);
+            setSettings(payload.new as SiteSettings);
+          }
+        )
+        .subscribe();
+
+      // Listen for custom events from the admin panel
+      const handleSettingsUpdate = () => {
+        fetchSiteSettings();
+      };
+
+      window.addEventListener('site-settings-updated', handleSettingsUpdate);
+
+      // Return cleanup function
+      return () => {
+        window.removeEventListener('site-settings-updated', handleSettingsUpdate);
+      };
     };
 
-    window.addEventListener('site-settings-updated', handleSettingsUpdate);
+    const cleanup = setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('site-settings-updated', handleSettingsUpdate);
+      // Clean up channel subscription
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      // Clean up event listeners
+      cleanup.then(cleanupFn => cleanupFn && cleanupFn());
     };
-  }, []);
+  }, []); // Empty dependency array to run only once
 
   const fetchSiteSettings = async () => {
     try {
