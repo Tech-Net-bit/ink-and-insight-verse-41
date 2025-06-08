@@ -1,374 +1,284 @@
 
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Users, Target, Award, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-
-interface FAQ {
-  id: string;
-  question: string;
-  answer: string;
-  order_index: number;
-}
+import { 
+  Users, 
+  Target, 
+  Eye, 
+  Heart,
+  Shield, 
+  Zap, 
+  Globe,
+  Award,
+  ExternalLink
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const About = () => {
   const { settings, loading } = useSiteSettings();
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+  const { getCachedData, cacheData } = usePerformanceOptimization();
+  const [optimizedContent, setOptimizedContent] = useState<any>(null);
+
+  // Default values that can be shown alongside custom ones
+  const defaultValues = [
+    {
+      icon: '🚀',
+      title: 'Innovation',
+      description: 'We constantly push the boundaries of technology to bring you the latest breakthroughs and insights.'
+    },
+    {
+      icon: '🎯',
+      title: 'Accuracy',
+      description: 'Our reviews and articles are thoroughly researched and fact-checked to ensure reliability.'
+    },
+    {
+      icon: '🌍',
+      title: 'Community',
+      description: 'We foster a vibrant community of tech enthusiasts who share knowledge and experiences.'
+    },
+    {
+      icon: '🔒',
+      title: 'Trust',
+      description: 'Transparency and honesty guide everything we do, from reviews to editorial decisions.'
+    }
+  ];
+
+  const defaultTeam = [
+    {
+      name: 'Alex Chen',
+      role: 'Editor-in-Chief',
+      bio: 'With over 10 years in tech journalism, Alex leads our editorial team with a passion for emerging technologies.',
+      image: '/placeholder.svg'
+    },
+    {
+      name: 'Sarah Rodriguez',
+      role: 'Senior Tech Reviewer',
+      bio: 'Sarah specializes in hardware reviews and has tested over 500 devices in her career.',
+      image: '/placeholder.svg'
+    },
+    {
+      name: 'Michael Park',
+      role: 'Software Analyst',
+      bio: 'Michael focuses on software reviews and cybersecurity, bringing enterprise-level insights to our readers.',
+      image: '/placeholder.svg'
+    }
+  ];
 
   useEffect(() => {
-    fetchFaqs();
-  }, []);
-
-  const fetchFaqs = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from('faqs')
-        .select('*')
-        .order('order_index');
-
-      if (error) throw error;
-      setFaqs(data || []);
-    } catch (error) {
-      console.error('Error fetching FAQs:', error);
+    // Try to get cached content first
+    const cached = getCachedData('about-page-content');
+    if (cached && !loading) {
+      setOptimizedContent(cached);
+    } else if (settings && !loading) {
+      // Process and cache the content
+      const processedContent = {
+        values: [
+          ...(settings.show_default_values ? defaultValues : []),
+          ...(settings.custom_values || [])
+        ],
+        team: [
+          ...(settings.show_default_team ? defaultTeam : []),
+          ...(settings.custom_team_members || [])
+        ]
+      };
+      
+      setOptimizedContent(processedContent);
+      cacheData('about-page-content', processedContent, 10 * 60 * 1000); // Cache for 10 minutes
     }
-  };
-
-  const teamMembers = [
-    {
-      name: "Alex Chen",
-      role: "Editor-in-Chief",
-      bio: "Technology journalist with 10+ years covering emerging tech trends.",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80"
-    },
-    {
-      name: "Sarah Johnson",
-      role: "Senior Writer",
-      bio: "Specialist in AI, machine learning, and consumer electronics.",
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=400&q=80"
-    },
-    {
-      name: "Mike Rodriguez",
-      role: "Tech Reviewer",
-      bio: "Hardware enthusiast with expertise in mobile devices and gaming.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"
-    },
-  ];
-
-  const values = [
-    {
-      icon: Target,
-      title: "Accuracy",
-      description: "We strive for factual, well-researched content that you can trust."
-    },
-    {
-      icon: Users,
-      title: "Community",
-      description: "Building a community of tech enthusiasts who share knowledge."
-    },
-    {
-      icon: Award,
-      title: "Excellence",
-      description: "Delivering high-quality content that sets industry standards."
-    },
-    {
-      icon: Heart,
-      title: "Passion",
-      description: "Driven by genuine love for technology and innovation."
-    },
-  ];
-
-  const toggleFaq = (faqId: string) => {
-    setExpandedFaq(expandedFaq === faqId ? null : faqId);
-  };
+  }, [settings, loading, getCachedData, cacheData]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1">
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-16">
-            <div className="container mx-auto px-4 text-center">
-              <div className="animate-pulse space-y-4">
-                <div className="h-12 bg-gray-200 rounded w-64 mx-auto"></div>
-                <div className="h-6 bg-gray-200 rounded w-96 mx-auto"></div>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
+        <div className="container mx-auto px-4 py-20">
+          <div className="animate-pulse space-y-8">
+            <div className="h-12 bg-gray-200 rounded w-1/3 mx-auto"></div>
+            <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto"></div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+              ))}
             </div>
           </div>
-        </main>
-        <Footer />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-16">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">About {settings?.site_name || 'TechFlow'}</h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              {settings?.site_description || 'We\'re passionate about technology and committed to bringing you the latest news, in-depth reviews, and expert insights from the ever-evolving tech landscape.'}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
+      {/* Hero Section */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center max-w-4xl mx-auto space-y-6">
+            <Badge variant="secondary" className="mb-4">About Us</Badge>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+              About {settings?.site_name || 'TechFlow'}
+            </h1>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              {settings?.about_content || 
+                `We're passionate about technology and committed to delivering the most comprehensive, 
+                accurate, and insightful tech content. Our mission is to help you navigate the ever-evolving 
+                world of technology with confidence.`}
             </p>
           </div>
         </div>
+      </section>
 
-        {/* Custom About Content */}
-        {settings?.about_content && (
-          <section className="py-16">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="prose prose-lg mx-auto">
-                  <p className="text-lg leading-relaxed whitespace-pre-wrap">
-                    {settings.about_content}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Mission and Vision */}
-        {(settings?.about_mission || settings?.about_vision) && (
-          <section className="py-16 bg-accent/5">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="grid md:grid-cols-2 gap-8">
-                  {settings?.about_mission && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Target className="h-6 w-6 text-primary" />
-                          Our Mission
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                          {settings.about_mission}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {settings?.about_vision && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Award className="h-6 w-6 text-primary" />
-                          Our Vision
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                          {settings.about_vision}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Default Mission Section - only show if no custom content */}
-        {!settings?.about_content && !settings?.about_mission && !settings?.about_vision && (
-          <section className="py-16">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold mb-4">Our Mission</h2>
-                  <p className="text-lg text-muted-foreground">
-                    To democratize technology knowledge and help everyone make informed decisions 
-                    about the tech products and services that shape our daily lives.
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-12 items-center">
-                  <div>
-                    <h3 className="text-2xl font-semibold mb-4">What We Do</h3>
-                    <ul className="space-y-3 text-muted-foreground">
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                        <span>Provide unbiased reviews of the latest tech products</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                        <span>Break down complex technology trends in simple terms</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                        <span>Cover breaking news from the tech industry</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                        <span>Share insights from industry experts and thought leaders</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <img
-                      src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80"
-                      alt="Team collaboration"
-                      className="rounded-lg shadow-lg"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Values Section */}
+      {/* Mission & Vision */}
+      {(settings?.about_mission || settings?.about_vision) && (
         <section className="py-16 bg-accent/5">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Our Values</h2>
-              <p className="text-lg text-muted-foreground">
-                The principles that guide everything we do
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {values.map((value) => {
-                const Icon = value.icon;
-                return (
-                  <Card key={value.title} className="text-center">
-                    <CardHeader>
-                      <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle>{value.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base">
-                        {value.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
+              {settings?.about_mission && (
+                <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardContent className="p-8">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Target className="h-8 w-8 text-primary" />
+                      <h3 className="text-2xl font-bold">Our Mission</h3>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {settings.about_mission}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {settings?.about_vision && (
+                <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardContent className="p-8">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Eye className="h-8 w-8 text-primary" />
+                      <h3 className="text-2xl font-bold">Our Vision</h3>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {settings.about_vision}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </section>
+      )}
 
-        {/* Team Section */}
+      {/* Values Section */}
+      {optimizedContent?.values && optimizedContent.values.length > 0 && (
         <section className="py-16">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Meet Our Team</h2>
-              <p className="text-lg text-muted-foreground">
-                The passionate people behind {settings?.site_name || 'TechFlow'}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Heart className="h-6 w-6 text-primary" />
+                <h2 className="text-3xl md:text-4xl font-bold">Our Values</h2>
+              </div>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                The principles that guide everything we do
               </p>
             </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {teamMembers.map((member) => (
-                <Card key={member.name} className="text-center">
-                  <CardHeader>
-                    <div className="mx-auto mb-4">
-                      <img
-                        src={member.image}
-                        alt={member.name}
-                        className="w-24 h-24 rounded-full object-cover mx-auto"
-                      />
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              {optimizedContent.values.map((value: any, index: number) => (
+                <Card key={index} className="group border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6 text-center">
+                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                      {value.icon}
                     </div>
-                    <CardTitle>{member.name}</CardTitle>
-                    <Badge variant="secondary" className="mx-auto w-fit">
-                      {member.role}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {member.bio}
-                    </CardDescription>
+                    <h3 className="text-xl font-semibold mb-3">{value.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {value.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </div>
         </section>
+      )}
 
-        {/* FAQs Section */}
-        {faqs.length > 0 && (
-          <section className="py-16 bg-accent/5">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-                  <p className="text-lg text-muted-foreground">
-                    Find answers to common questions about {settings?.site_name || 'TechFlow'}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {faqs.map((faq) => (
-                    <Card key={faq.id}>
-                      <CardHeader>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-between p-0 h-auto"
-                          onClick={() => toggleFaq(faq.id)}
-                        >
-                          <CardTitle className="text-left">{faq.question}</CardTitle>
-                          {expandedFaq === faq.id ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </CardHeader>
-                      {expandedFaq === faq.id && (
-                        <CardContent>
-                          <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                            {faq.answer}
-                          </p>
-                        </CardContent>
-                      )}
-                    </Card>
-                  ))}
-                </div>
+      {/* Team Section */}
+      {optimizedContent?.team && optimizedContent.team.length > 0 && (
+        <section className="py-16 bg-accent/5">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Users className="h-6 w-6 text-primary" />
+                <h2 className="text-3xl md:text-4xl font-bold">Meet Our Team</h2>
               </div>
-            </div>
-          </section>
-        )}
-
-        {/* Contact Section */}
-        <section className="py-16">
-          <div className="container mx-auto px-4 text-center">
-            <div className="max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold mb-4">Get In Touch</h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Have a story tip, product suggestion, or just want to say hello? 
-                We'd love to hear from you.
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                The passionate individuals behind our content
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Badge variant="outline" className="text-base px-4 py-2">
-                  📧 contact@{settings?.site_name?.toLowerCase() || 'techflow'}.com
-                </Badge>
-                {settings?.social_twitter && (
-                  <Badge variant="outline" className="text-base px-4 py-2">
-                    🐦 @{settings.site_name || 'TechFlow'}News
-                  </Badge>
-                )}
-                {settings?.social_linkedin && (
-                  <Badge variant="outline" className="text-base px-4 py-2">
-                    💼 LinkedIn/{settings.site_name || 'TechFlow'}
-                  </Badge>
-                )}
-              </div>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {optimizedContent.team.map((member: any, index: number) => (
+                <Card key={index} className="group border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6 text-center">
+                    <div className="relative mb-4">
+                      <img
+                        src={member.image || '/placeholder.svg'}
+                        alt={member.name}
+                        className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-background shadow-lg group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
+                    <p className="text-primary font-medium mb-3">{member.role}</p>
+                    <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                      {member.bio}
+                    </p>
+                    {(member.linkedin || member.twitter) && (
+                      <div className="flex justify-center gap-2">
+                        {member.linkedin && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={member.linkedin} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              LinkedIn
+                            </a>
+                          </Button>
+                        )}
+                        {member.twitter && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={member.twitter} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              Twitter
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </section>
-      </main>
-      <Footer />
+      )}
+
+      {/* Stats Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            {[
+              { icon: Globe, label: 'Global Readers', value: '1.2M+' },
+              { icon: Award, label: 'Reviews Published', value: '500+' },
+              { icon: Users, label: 'Community Members', value: '50K+' },
+              { icon: Zap, label: 'Years of Excellence', value: '8+' }
+            ].map((stat, index) => (
+              <div key={index} className="text-center group">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <stat.icon className="h-8 w-8" />
+                </div>
+                <div className="text-3xl font-bold mb-2">{stat.value}</div>
+                <div className="text-muted-foreground font-medium">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

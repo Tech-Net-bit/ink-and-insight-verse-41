@@ -212,6 +212,8 @@ export type Database = {
           about_content: string | null
           about_mission: string | null
           about_vision: string | null
+          custom_team_members: Json | null
+          custom_values: Json | null
           favicon_url: string | null
           hero_image_url: string | null
           hero_subtitle: string | null
@@ -223,6 +225,8 @@ export type Database = {
           meta_title: string | null
           primary_color: string | null
           secondary_color: string | null
+          show_default_team: boolean | null
+          show_default_values: boolean | null
           site_description: string | null
           site_name: string | null
           social_facebook: string | null
@@ -235,6 +239,8 @@ export type Database = {
           about_content?: string | null
           about_mission?: string | null
           about_vision?: string | null
+          custom_team_members?: Json | null
+          custom_values?: Json | null
           favicon_url?: string | null
           hero_image_url?: string | null
           hero_subtitle?: string | null
@@ -246,6 +252,8 @@ export type Database = {
           meta_title?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          show_default_team?: boolean | null
+          show_default_values?: boolean | null
           site_description?: string | null
           site_name?: string | null
           social_facebook?: string | null
@@ -258,6 +266,8 @@ export type Database = {
           about_content?: string | null
           about_mission?: string | null
           about_vision?: string | null
+          custom_team_members?: Json | null
+          custom_values?: Json | null
           favicon_url?: string | null
           hero_image_url?: string | null
           hero_subtitle?: string | null
@@ -269,6 +279,8 @@ export type Database = {
           meta_title?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          show_default_team?: boolean | null
+          show_default_values?: boolean | null
           site_description?: string | null
           site_name?: string | null
           social_facebook?: string | null

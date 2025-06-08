@@ -23,6 +23,10 @@ interface SiteSettings {
   about_content?: string;
   about_mission?: string;
   about_vision?: string;
+  custom_values?: any[];
+  custom_team_members?: any[];
+  show_default_values?: boolean;
+  show_default_team?: boolean;
 }
 
 export const useSiteSettings = () => {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Save, RefreshCw, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ImageUpload from './ImageUpload';
+import ValuesTeamManager from './ValuesTeamManager';
 
 interface SiteSettingsData {
   id: string;
@@ -32,6 +32,10 @@ interface SiteSettingsData {
   about_content?: string;
   about_mission?: string;
   about_vision?: string;
+  custom_values?: any[];
+  custom_team_members?: any[];
+  show_default_values?: boolean;
+  show_default_team?: boolean;
 }
 
 interface FAQ {
@@ -125,7 +129,7 @@ const SiteSettings = () => {
     }
   };
 
-  const updateSetting = (key: keyof SiteSettingsData, value: string) => {
+  const updateSetting = (key: keyof SiteSettingsData, value: any) => {
     if (settings) {
       setSettings({ ...settings, [key]: value });
     }
@@ -243,6 +247,7 @@ const SiteSettings = () => {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
             <TabsTrigger value="about">About Page</TabsTrigger>
+            <TabsTrigger value="values-team">Values & Team</TabsTrigger>
             <TabsTrigger value="faqs">FAQs</TabsTrigger>
             <TabsTrigger value="seo">SEO & Meta</TabsTrigger>
             <TabsTrigger value="social">Social Media</TabsTrigger>
@@ -404,6 +409,19 @@ const SiteSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="values-team" className="space-y-6">
+            <ValuesTeamManager
+              values={settings.custom_values || []}
+              teamMembers={settings.custom_team_members || []}
+              showDefaultValues={settings.show_default_values ?? true}
+              showDefaultTeam={settings.show_default_team ?? true}
+              onValuesChange={(values) => updateSetting('custom_values', values)}
+              onTeamChange={(team) => updateSetting('custom_team_members', team)}
+              onShowDefaultValuesChange={(show) => updateSetting('show_default_values', show)}
+              onShowDefaultTeamChange={(show) => updateSetting('show_default_team', show)}
+            />
           </TabsContent>
 
           <TabsContent value="faqs" className="space-y-6">
