@@ -9,6 +9,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import Articles from "./pages/Articles";
+import ArticleDetail from "./pages/ArticleDetail";
+import Categories from "./pages/Categories";
+import About from "./pages/About";
 import AdminLayout from "./components/admin/AdminLayout";
 import ArticleManagement from "./components/admin/ArticleManagement";
 import CategoryManagement from "./components/admin/CategoryManagement";
@@ -31,7 +35,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/articles" element={<Articles />} />
             <Route path="/article/:slug" element={<ArticleDetail />} />
-            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/categories" element={<Categories />} />
             <Route path="/about" element={<About />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/*" element={

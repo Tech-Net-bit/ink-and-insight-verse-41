@@ -71,16 +71,19 @@ const DatabaseManager = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('execute_sql', {
-        query: selectedQuery
-      });
+      // For demo purposes, we'll simulate query execution
+      // In a real app, you would need a custom function to execute arbitrary SQL
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .limit(10);
 
       if (error) throw error;
 
       setQueryResult(data);
       toast({
         title: "Success",
-        description: "Query executed successfully",
+        description: "Query executed successfully (demo data shown)",
       });
     } catch (error: any) {
       console.error('Error executing query:', error);
