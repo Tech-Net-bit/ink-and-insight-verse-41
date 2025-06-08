@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
+import { Link } from 'react-router-dom';
 import FeaturedSlider from './FeaturedSlider';
 
 const Hero = () => {
@@ -47,11 +48,11 @@ const Hero = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="hover:scale-105 transition-transform duration-200">
-                Read Latest Articles
+              <Button size="lg" className="hover:scale-105 transition-transform duration-200" asChild>
+                <Link to="/articles">Read Latest Articles</Link>
               </Button>
-              <Button variant="outline" size="lg" className="hover:bg-accent">
-                Watch Reviews
+              <Button variant="outline" size="lg" className="hover:bg-accent" asChild>
+                <Link to="/categories">Browse Categories</Link>
               </Button>
             </div>
             <div className="flex items-center space-x-8 text-sm text-muted-foreground">

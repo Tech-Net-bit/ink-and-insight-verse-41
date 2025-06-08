@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 interface Article {
   id: string;
@@ -78,7 +79,14 @@ const FeaturedSlider = () => {
   }
 
   if (articles.length === 0) {
-    return null;
+    return (
+      <div className="relative h-96 bg-gradient-to-r from-accent/10 to-accent/20 rounded-2xl flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-xl font-semibold mb-2">No Featured Articles</h3>
+          <p className="text-muted-foreground">Featured articles will appear here once published.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -108,8 +116,8 @@ const FeaturedSlider = () => {
                     <span className="text-sm text-gray-300">
                       By {article.profiles?.full_name} • {new Date(article.created_at).toLocaleDateString()}
                     </span>
-                    <Button variant="secondary" size="sm">
-                      Read More
+                    <Button variant="secondary" size="sm" asChild>
+                      <Link to={`/article/${article.slug}`}>Read More</Link>
                     </Button>
                   </div>
                 </div>

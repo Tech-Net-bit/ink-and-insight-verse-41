@@ -11,6 +11,15 @@ interface SiteSettings {
   hero_image_url: string | null;
   primary_color: string;
   secondary_color: string;
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  favicon_url: string;
+  logo_url: string;
+  social_twitter: string;
+  social_facebook: string;
+  social_linkedin: string;
+  social_instagram: string;
 }
 
 export const useSiteSettings = () => {
@@ -19,6 +28,27 @@ export const useSiteSettings = () => {
 
   useEffect(() => {
     fetchSiteSettings();
+
+    // Listen for real-time updates to site settings
+    const channel = supabase
+      .channel('site-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'site_settings'
+        },
+        (payload) => {
+          console.log('Site settings updated:', payload);
+          setSettings(payload.new as SiteSettings);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchSiteSettings = async () => {

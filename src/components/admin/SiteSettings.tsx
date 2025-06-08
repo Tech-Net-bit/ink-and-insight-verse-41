@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save } from 'lucide-react';
+import { Save, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SiteSettingsData {
@@ -76,8 +76,14 @@ const SiteSettings = () => {
 
       toast({
         title: 'Success',
-        description: 'Site settings updated successfully',
+        description: 'Site settings updated successfully. Changes will reflect across the site.',
       });
+
+      // Trigger a small delay to ensure the update propagates
+      setTimeout(() => {
+        window.dispatchEvent(new Event('site-settings-updated'));
+      }, 500);
+
     } catch (error) {
       console.error('Error updating site settings:', error);
       toast({
@@ -96,6 +102,11 @@ const SiteSettings = () => {
     }
   };
 
+  const refreshPreview = () => {
+    // Open the homepage in a new tab to preview changes
+    window.open('/', '_blank');
+  };
+
   if (!settings) {
     return (
       <div className="space-y-6">
@@ -109,9 +120,15 @@ const SiteSettings = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Site Settings</h1>
-        <p className="text-muted-foreground">Customize your website appearance and SEO</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Site Settings</h1>
+          <p className="text-muted-foreground">Customize your website appearance and SEO</p>
+        </div>
+        <Button variant="outline" onClick={refreshPreview}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Preview Site
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -128,7 +145,7 @@ const SiteSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>General Settings</CardTitle>
-                <CardDescription>Basic site information</CardDescription>
+                <CardDescription>Basic site information that appears throughout your website</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -181,7 +198,7 @@ const SiteSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Hero Section</CardTitle>
-                <CardDescription>Customize your homepage hero section</CardDescription>
+                <CardDescription>Customize your homepage hero section content</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -340,7 +357,11 @@ const SiteSettings = () => {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={refreshPreview}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Preview Changes
+          </Button>
           <Button type="submit" disabled={loading}>
             <Save className="mr-2 h-4 w-4" />
             {loading ? 'Saving...' : 'Save Settings'}

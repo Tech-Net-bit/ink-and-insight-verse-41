@@ -4,8 +4,11 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Target, Award, Heart } from 'lucide-react';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const About = () => {
+  const { settings, loading } = useSiteSettings();
+
   const teamMembers = [
     {
       name: "Alex Chen",
@@ -50,6 +53,25 @@ const About = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-16">
+            <div className="container mx-auto px-4 text-center">
+              <div className="animate-pulse space-y-4">
+                <div className="h-12 bg-gray-200 rounded w-64 mx-auto"></div>
+                <div className="h-6 bg-gray-200 rounded w-96 mx-auto"></div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -57,10 +79,9 @@ const About = () => {
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-primary/10 to-secondary/10 py-16">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">About TechFlow</h1>
+            <h1 className="text-4xl font-bold mb-4">About {settings?.site_name || 'TechFlow'}</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              We're passionate about technology and committed to bringing you the latest news, 
-              in-depth reviews, and expert insights from the ever-evolving tech landscape.
+              {settings?.site_description || 'We\'re passionate about technology and committed to bringing you the latest news, in-depth reviews, and expert insights from the ever-evolving tech landscape.'}
             </p>
           </div>
         </div>
@@ -150,7 +171,7 @@ const About = () => {
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Meet Our Team</h2>
               <p className="text-lg text-muted-foreground">
-                The passionate people behind TechFlow
+                The passionate people behind {settings?.site_name || 'TechFlow'}
               </p>
             </div>
 
@@ -192,14 +213,18 @@ const About = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Badge variant="outline" className="text-base px-4 py-2">
-                  📧 contact@techflow.com
+                  📧 contact@{settings?.site_name?.toLowerCase() || 'techflow'}.com
                 </Badge>
-                <Badge variant="outline" className="text-base px-4 py-2">
-                  🐦 @TechFlowNews
-                </Badge>
-                <Badge variant="outline" className="text-base px-4 py-2">
-                  💼 LinkedIn/TechFlow
-                </Badge>
+                {settings?.social_twitter && (
+                  <Badge variant="outline" className="text-base px-4 py-2">
+                    🐦 @{settings.site_name || 'TechFlow'}News
+                  </Badge>
+                )}
+                {settings?.social_linkedin && (
+                  <Badge variant="outline" className="text-base px-4 py-2">
+                    💼 LinkedIn/{settings.site_name || 'TechFlow'}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
