@@ -111,6 +111,33 @@ export type Database = {
         }
         Relationships: []
       }
+      faqs: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          order_index: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -182,6 +209,9 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          about_content: string | null
+          about_mission: string | null
+          about_vision: string | null
           favicon_url: string | null
           hero_image_url: string | null
           hero_subtitle: string | null
@@ -202,6 +232,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          about_content?: string | null
+          about_mission?: string | null
+          about_vision?: string | null
           favicon_url?: string | null
           hero_image_url?: string | null
           hero_subtitle?: string | null
@@ -222,6 +255,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          about_content?: string | null
+          about_mission?: string | null
+          about_vision?: string | null
           favicon_url?: string | null
           hero_image_url?: string | null
           hero_subtitle?: string | null

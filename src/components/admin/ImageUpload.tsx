@@ -57,14 +57,14 @@ const ImageUpload = ({ value, onChange, onClose }: ImageUploadProps) => {
 
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
-        .from('article-images')
+        .from('site-images')
         .upload(fileName, file);
 
       if (error) throw error;
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('article-images')
+        .from('site-images')
         .getPublicUrl(data.path);
 
       const imageUrl = urlData.publicUrl;

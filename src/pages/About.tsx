@@ -27,7 +27,7 @@ const About = () => {
 
   const fetchFaqs = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('faqs')
         .select('*')
         .order('order_index');
