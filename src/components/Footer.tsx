@@ -16,7 +16,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2">
             <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-4">
-              TechFlow
+             VzonTech
             </h3>
             <p className="text-muted-foreground mb-6 max-w-sm">
               Your trusted source for technology news, reviews, and insights. 
@@ -57,7 +57,7 @@ const Footer = () => {
 
         <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-muted-foreground text-sm">
-            © 2024 TechFlow. All rights reserved.
+            © 2024 vzontech. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200">
