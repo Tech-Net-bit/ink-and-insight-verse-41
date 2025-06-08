@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ImageUpload from './ImageUpload';
 
 interface SiteSettingsData {
   id: string;
@@ -28,15 +29,29 @@ interface SiteSettingsData {
   social_facebook: string;
   social_linkedin: string;
   social_instagram: string;
+  about_content?: string;
+  about_mission?: string;
+  about_vision?: string;
+}
+
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  order_index: number;
 }
 
 const SiteSettings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<SiteSettingsData | null>(null);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [showImageUpload, setShowImageUpload] = useState<{type: string, field: string} | null>(null);
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
 
   useEffect(() => {
     fetchSettings();
+    fetchFaqs();
   }, []);
 
   const fetchSettings = async () => {
@@ -55,6 +70,20 @@ const SiteSettings = () => {
         description: 'Failed to fetch site settings',
         variant: 'destructive',
       });
+    }
+  };
+
+  const fetchFaqs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('faqs')
+        .select('*')
+        .order('order_index');
+
+      if (error) throw error;
+      setFaqs(data || []);
+    } catch (error) {
+      console.error('Error fetching FAQs:', error);
     }
   };
 
@@ -79,7 +108,6 @@ const SiteSettings = () => {
         description: 'Site settings updated successfully. Changes will reflect across the site.',
       });
 
-      // Trigger a small delay to ensure the update propagates
       setTimeout(() => {
         window.dispatchEvent(new Event('site-settings-updated'));
       }, 500);
@@ -102,9 +130,76 @@ const SiteSettings = () => {
     }
   };
 
+  const addFaq = async () => {
+    if (!newFaq.question.trim() || !newFaq.answer.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in both question and answer',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('faqs')
+        .insert({
+          question: newFaq.question,
+          answer: newFaq.answer,
+          order_index: faqs.length
+        });
+
+      if (error) throw error;
+
+      setNewFaq({ question: '', answer: '' });
+      fetchFaqs();
+      toast({
+        title: 'Success',
+        description: 'FAQ added successfully',
+      });
+    } catch (error) {
+      console.error('Error adding FAQ:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add FAQ',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteFaq = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('faqs')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      fetchFaqs();
+      toast({
+        title: 'Success',
+        description: 'FAQ deleted successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting FAQ:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete FAQ',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const refreshPreview = () => {
-    // Open the homepage in a new tab to preview changes
     window.open('/', '_blank');
+  };
+
+  const handleImageUpload = (url: string) => {
+    if (showImageUpload && settings) {
+      updateSetting(showImageUpload.field as keyof SiteSettingsData, url);
+      setShowImageUpload(null);
+    }
   };
 
   if (!settings) {
@@ -118,12 +213,22 @@ const SiteSettings = () => {
     );
   }
 
+  if (showImageUpload) {
+    return (
+      <ImageUpload
+        value=""
+        onChange={handleImageUpload}
+        onClose={() => setShowImageUpload(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Site Settings</h1>
-          <p className="text-muted-foreground">Customize your website appearance and SEO</p>
+          <p className="text-muted-foreground">Customize your website appearance, content, and SEO</p>
         </div>
         <Button variant="outline" onClick={refreshPreview}>
           <RefreshCw className="mr-2 h-4 w-4" />
@@ -136,6 +241,8 @@ const SiteSettings = () => {
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="hero">Hero Section</TabsTrigger>
+            <TabsTrigger value="about">About Page</TabsTrigger>
+            <TabsTrigger value="faqs">FAQs</TabsTrigger>
             <TabsTrigger value="seo">SEO & Meta</TabsTrigger>
             <TabsTrigger value="social">Social Media</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
@@ -223,13 +330,139 @@ const SiteSettings = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hero_image_url">Hero Image URL</Label>
-                  <Input
-                    id="hero_image_url"
-                    value={settings.hero_image_url}
-                    onChange={(e) => updateSetting('hero_image_url', e.target.value)}
-                    placeholder="https://example.com/hero-image.jpg"
+                  <Label htmlFor="hero_image_url">Hero Background Image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="hero_image_url"
+                      value={settings.hero_image_url}
+                      onChange={(e) => updateSetting('hero_image_url', e.target.value)}
+                      placeholder="https://example.com/hero-image.jpg"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowImageUpload({type: 'hero', field: 'hero_image_url'})}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload
+                    </Button>
+                  </div>
+                  {settings.hero_image_url && (
+                    <div className="mt-2">
+                      <img
+                        src={settings.hero_image_url}
+                        alt="Hero preview"
+                        className="max-w-xs h-20 object-cover rounded border"
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="about" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About Page Content</CardTitle>
+                <CardDescription>Customize your About page content</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="about_content">About Content</Label>
+                  <Textarea
+                    id="about_content"
+                    value={settings.about_content || ''}
+                    onChange={(e) => updateSetting('about_content', e.target.value)}
+                    placeholder="Main about page content..."
+                    rows={6}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="about_mission">Mission Statement</Label>
+                  <Textarea
+                    id="about_mission"
+                    value={settings.about_mission || ''}
+                    onChange={(e) => updateSetting('about_mission', e.target.value)}
+                    placeholder="Your mission statement..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="about_vision">Vision Statement</Label>
+                  <Textarea
+                    id="about_vision"
+                    value={settings.about_vision || ''}
+                    onChange={(e) => updateSetting('about_vision', e.target.value)}
+                    placeholder="Your vision statement..."
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="faqs" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>FAQ Management</CardTitle>
+                <CardDescription>Manage frequently asked questions</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4 border-b pb-4">
+                  <h4 className="font-semibold">Add New FAQ</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_question">Question</Label>
+                    <Input
+                      id="new_question"
+                      value={newFaq.question}
+                      onChange={(e) => setNewFaq({...newFaq, question: e.target.value})}
+                      placeholder="Enter the question..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_answer">Answer</Label>
+                    <Textarea
+                      id="new_answer"
+                      value={newFaq.answer}
+                      onChange={(e) => setNewFaq({...newFaq, answer: e.target.value})}
+                      placeholder="Enter the answer..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button type="button" onClick={addFaq}>
+                    Add FAQ
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold">Existing FAQs</h4>
+                  {faqs.length === 0 ? (
+                    <p className="text-muted-foreground">No FAQs added yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {faqs.map((faq) => (
+                        <div key={faq.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start gap-4">
+                            <div className="flex-1">
+                              <h5 className="font-medium">{faq.question}</h5>
+                              <p className="text-sm text-muted-foreground mt-1">{faq.answer}</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteFaq(faq.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -335,22 +568,62 @@ const SiteSettings = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="logo_url">Logo URL</Label>
-                  <Input
-                    id="logo_url"
-                    value={settings.logo_url}
-                    onChange={(e) => updateSetting('logo_url', e.target.value)}
-                    placeholder="https://example.com/logo.png"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="logo_url"
+                      value={settings.logo_url}
+                      onChange={(e) => updateSetting('logo_url', e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowImageUpload({type: 'logo', field: 'logo_url'})}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload
+                    </Button>
+                  </div>
+                  {settings.logo_url && (
+                    <div className="mt-2">
+                      <img
+                        src={settings.logo_url}
+                        alt="Logo preview"
+                        className="h-12 w-auto object-contain border rounded p-2"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="favicon_url">Favicon URL</Label>
-                  <Input
-                    id="favicon_url"
-                    value={settings.favicon_url}
-                    onChange={(e) => updateSetting('favicon_url', e.target.value)}
-                    placeholder="https://example.com/favicon.ico"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="favicon_url"
+                      value={settings.favicon_url}
+                      onChange={(e) => updateSetting('favicon_url', e.target.value)}
+                      placeholder="https://example.com/favicon.ico"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowImageUpload({type: 'favicon', field: 'favicon_url'})}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload
+                    </Button>
+                  </div>
+                  {settings.favicon_url && (
+                    <div className="mt-2">
+                      <img
+                        src={settings.favicon_url}
+                        alt="Favicon preview"
+                        className="h-8 w-8 object-contain border rounded"
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

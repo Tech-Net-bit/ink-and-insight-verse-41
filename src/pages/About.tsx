@@ -3,11 +3,41 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Target, Award, Heart } from 'lucide-react';
+import { Users, Target, Award, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  order_index: number;
+}
 
 const About = () => {
   const { settings, loading } = useSiteSettings();
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchFaqs();
+  }, []);
+
+  const fetchFaqs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('faqs')
+        .select('*')
+        .order('order_index');
+
+      if (error) throw error;
+      setFaqs(data || []);
+    } catch (error) {
+      console.error('Error fetching FAQs:', error);
+    }
+  };
 
   const teamMembers = [
     {
@@ -53,6 +83,10 @@ const About = () => {
     },
   ];
 
+  const toggleFaq = (faqId: string) => {
+    setExpandedFaq(expandedFaq === faqId ? null : faqId);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -86,51 +120,111 @@ const About = () => {
           </div>
         </div>
 
-        {/* Mission Section */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold mb-4">Our Mission</h2>
-                <p className="text-lg text-muted-foreground">
-                  To democratize technology knowledge and help everyone make informed decisions 
-                  about the tech products and services that shape our daily lives.
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-12 items-center">
-                <div>
-                  <h3 className="text-2xl font-semibold mb-4">What We Do</h3>
-                  <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                      <span>Provide unbiased reviews of the latest tech products</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                      <span>Break down complex technology trends in simple terms</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                      <span>Cover breaking news from the tech industry</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                      <span>Share insights from industry experts and thought leaders</span>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <img
-                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80"
-                    alt="Team collaboration"
-                    className="rounded-lg shadow-lg"
-                  />
+        {/* Custom About Content */}
+        {settings?.about_content && (
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="prose prose-lg mx-auto">
+                  <p className="text-lg leading-relaxed whitespace-pre-wrap">
+                    {settings.about_content}
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* Mission and Vision */}
+        {(settings?.about_mission || settings?.about_vision) && (
+          <section className="py-16 bg-accent/5">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-8">
+                  {settings?.about_mission && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Target className="h-6 w-6 text-primary" />
+                          Our Mission
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {settings.about_mission}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {settings?.about_vision && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Award className="h-6 w-6 text-primary" />
+                          Our Vision
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {settings.about_vision}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Default Mission Section - only show if no custom content */}
+        {!settings?.about_content && !settings?.about_mission && !settings?.about_vision && (
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-bold mb-4">Our Mission</h2>
+                  <p className="text-lg text-muted-foreground">
+                    To democratize technology knowledge and help everyone make informed decisions 
+                    about the tech products and services that shape our daily lives.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                  <div>
+                    <h3 className="text-2xl font-semibold mb-4">What We Do</h3>
+                    <ul className="space-y-3 text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                        <span>Provide unbiased reviews of the latest tech products</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                        <span>Break down complex technology trends in simple terms</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                        <span>Cover breaking news from the tech industry</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                        <span>Share insights from industry experts and thought leaders</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <img
+                      src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80"
+                      alt="Team collaboration"
+                      className="rounded-lg shadow-lg"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Values Section */}
         <section className="py-16 bg-accent/5">
@@ -202,8 +296,52 @@ const About = () => {
           </div>
         </section>
 
+        {/* FAQs Section */}
+        {faqs.length > 0 && (
+          <section className="py-16 bg-accent/5">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+                  <p className="text-lg text-muted-foreground">
+                    Find answers to common questions about {settings?.site_name || 'TechFlow'}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {faqs.map((faq) => (
+                    <Card key={faq.id}>
+                      <CardHeader>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between p-0 h-auto"
+                          onClick={() => toggleFaq(faq.id)}
+                        >
+                          <CardTitle className="text-left">{faq.question}</CardTitle>
+                          {expandedFaq === faq.id ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
+                        </Button>
+                      </CardHeader>
+                      {expandedFaq === faq.id && (
+                        <CardContent>
+                          <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                            {faq.answer}
+                          </p>
+                        </CardContent>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Contact Section */}
-        <section className="py-16 bg-accent/5">
+        <section className="py-16">
           <div className="container mx-auto px-4 text-center">
             <div className="max-w-2xl mx-auto">
               <h2 className="text-3xl font-bold mb-4">Get In Touch</h2>

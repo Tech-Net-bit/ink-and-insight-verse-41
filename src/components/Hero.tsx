@@ -30,7 +30,14 @@ const Hero = () => {
   }
 
   return (
-    <section className="relative bg-gradient-to-br from-background via-background to-accent/20 py-20 overflow-hidden">
+    <section 
+      className="relative bg-gradient-to-br from-background via-background to-accent/20 py-20 overflow-hidden"
+      style={{
+        backgroundImage: settings?.hero_image_url ? `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${settings.hero_image_url})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -40,10 +47,10 @@ const Hero = () => {
               <Badge variant="secondary" className="w-fit">
                 Featured Story
               </Badge>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight ${settings?.hero_image_url ? 'text-white' : ''}`}>
                 {settings?.hero_title || 'The Future of Technology is Here'}
               </h1>
-              <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
+              <p className={`text-xl leading-relaxed max-w-2xl ${settings?.hero_image_url ? 'text-gray-200' : 'text-muted-foreground'}`}>
                 {settings?.hero_subtitle || 'Discover the latest breakthroughs, in-depth reviews, and expert insights that are shaping our digital world.'}
               </p>
             </div>
@@ -55,15 +62,15 @@ const Hero = () => {
                 <Link to="/categories">Browse Categories</Link>
               </Button>
             </div>
-            <div className="flex items-center space-x-8 text-sm text-muted-foreground">
+            <div className={`flex items-center space-x-8 text-sm ${settings?.hero_image_url ? 'text-gray-300' : 'text-muted-foreground'}`}>
               <div>
-                <span className="font-semibold text-foreground">1.2M+</span> Readers
+                <span className={`font-semibold ${settings?.hero_image_url ? 'text-white' : 'text-foreground'}`}>1.2M+</span> Readers
               </div>
               <div>
-                <span className="font-semibold text-foreground">500+</span> Reviews
+                <span className={`font-semibold ${settings?.hero_image_url ? 'text-white' : 'text-foreground'}`}>500+</span> Reviews
               </div>
               <div>
-                <span className="font-semibold text-foreground">Daily</span> Updates
+                <span className={`font-semibold ${settings?.hero_image_url ? 'text-white' : 'text-foreground'}`}>Daily</span> Updates
               </div>
             </div>
           </div>

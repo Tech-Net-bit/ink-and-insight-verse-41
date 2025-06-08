@@ -20,6 +20,9 @@ interface SiteSettings {
   social_facebook: string;
   social_linkedin: string;
   social_instagram: string;
+  about_content?: string;
+  about_mission?: string;
+  about_vision?: string;
 }
 
 export const useSiteSettings = () => {
@@ -46,8 +49,16 @@ export const useSiteSettings = () => {
       )
       .subscribe();
 
+    // Listen for custom events from the admin panel
+    const handleSettingsUpdate = () => {
+      fetchSiteSettings();
+    };
+
+    window.addEventListener('site-settings-updated', handleSettingsUpdate);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('site-settings-updated', handleSettingsUpdate);
     };
   }, []);
 

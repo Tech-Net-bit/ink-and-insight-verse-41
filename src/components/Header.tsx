@@ -1,6 +1,8 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,17 +17,33 @@ import { LogOut, Menu, Settings, X } from 'lucide-react';
 
 const Header = () => {
   const { user, userRole, signOut } = useAuth();
+  const { settings } = useSiteSettings();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const siteName = settings?.site_name || 'TechFlow';
+  const logoUrl = settings?.logo_url;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">T</span>
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={siteName}
+                className="h-8 w-8 object-contain rounded-lg"
+                onError={(e) => {
+                  // Fallback to default logo if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={`h-8 w-8 bg-primary rounded-lg flex items-center justify-center ${logoUrl ? 'hidden' : ''}`}>
+              <span className="text-primary-foreground font-bold">{siteName.charAt(0).toUpperCase()}</span>
             </div>
-            <span className="font-bold text-xl">TechFlow</span>
+            <span className="font-bold text-xl">{siteName}</span>
           </Link>
         </div>
 
