@@ -186,30 +186,18 @@ const ArticleGrid = () => {
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {articles.map((article, index) => (
-                <div key={article.id} className="group relative">
-                  <div className="relative overflow-hidden rounded-t-xl">
-                    <OptimizedImage
-                      src={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
-                      alt={article.title}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      priority={index < 3}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                  <div className="bg-white rounded-b-xl shadow-sm">
-                    <ArticleCard
-                      title={article.title}
-                      excerpt={article.excerpt || ''}
-                      category={article.categories?.name || 'Uncategorized'}
-                      readTime={`${getReadTime(article.excerpt || '')} min read`}
-                      publishedAt={getRelativeTime(article.created_at)}
-                      imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
-                      type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
-                      articleId={article.id}
-                      slug={article.slug}
-                    />
-                  </div>
-                </div>
+                <ArticleCard
+                  key={article.id}
+                  title={article.title}
+                  excerpt={article.excerpt || ''}
+                  category={article.categories?.name || 'Uncategorized'}
+                  readTime={`${getReadTime(article.excerpt || '')} min read`}
+                  publishedAt={getRelativeTime(article.created_at)}
+                  imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                  type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
+                  articleId={article.id}
+                  slug={article.slug}
+                />
               ))}
             </div>
 

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
 import ReviewSystem from './ReviewSystem';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface ArticleCardProps {
   title: string;
@@ -32,6 +32,7 @@ const ArticleCard = ({
   slug
 }: ArticleCardProps) => {
   const [showReviews, setShowReviews] = useState(false);
+  const navigate = useNavigate();
 
   const getBadgeVariant = (type: string) => {
     switch (type) {
@@ -49,10 +50,24 @@ const ArticleCard = ({
     }
   };
 
+  const handleReadMore = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (slug) {
+      navigate(`/article/${slug}`);
+    }
+  };
+
+  const handleCardClick = () => {
+    if (slug) {
+      navigate(`/article/${slug}`);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <article className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group">
-        <Link to={slug ? `/article/${slug}` : '#'} className="block">
+      <article className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer">
+        <div onClick={handleCardClick}>
           <div className="relative aspect-video overflow-hidden">
             <img 
               src={imageUrl}
@@ -99,9 +114,9 @@ const ArticleCard = ({
                   variant="ghost" 
                   size="sm" 
                   className="hover:bg-accent group-hover:text-primary transition-colors duration-200"
-                  asChild
+                  onClick={handleReadMore}
                 >
-                  <span>Read More</span>
+                  Read More
                 </Button>
                 {articleId && (
                   <Button 
@@ -119,7 +134,7 @@ const ArticleCard = ({
               </div>
             </div>
           </div>
-        </Link>
+        </div>
       </article>
 
       {showReviews && articleId && (
