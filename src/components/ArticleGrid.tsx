@@ -1,7 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import ArticleCard from './ArticleCard';
 import { supabase } from '@/integrations/supabase/client';
+import OptimizedImage from './OptimizedImage';
+import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 
 interface Article {
   id: string;
@@ -20,13 +21,32 @@ const ArticleGrid = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const { cacheData, getCachedData, checkRateLimit } = usePerformanceOptimization();
 
   useEffect(() => {
     fetchArticles();
   }, []);
 
   const fetchArticles = async (pageNum = 1) => {
+    if (!checkRateLimit('articles-fetch')) {
+      console.warn('Rate limit exceeded for articles fetch');
+      return;
+    }
+
     try {
+      const cacheKey = `articles-page-${pageNum}`;
+      const cached = getCachedData(cacheKey);
+      
+      if (cached) {
+        if (pageNum === 1) {
+          setArticles(cached);
+        } else {
+          setArticles(prev => [...prev, ...cached]);
+        }
+        setLoading(false);
+        return;
+      }
+
       const limit = 6;
       const offset = (pageNum - 1) * limit;
 
@@ -51,6 +71,9 @@ const ArticleGrid = () => {
         console.error('Error fetching articles:', error);
         return;
       }
+
+      // Cache the result
+      cacheData(cacheKey, data || [], 3 * 60 * 1000); // 3 min cache
 
       if (pageNum === 1) {
         setArticles(data || []);
@@ -140,19 +163,27 @@ const ArticleGrid = () => {
         ) : (
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {articles.map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  title={article.title}
-                  excerpt={article.excerpt || ''}
-                  category={article.categories?.name || 'Uncategorized'}
-                  readTime={`${getReadTime(article.excerpt || '')} min read`}
-                  publishedAt={getRelativeTime(article.created_at)}
-                  imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
-                  type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
-                  articleId={article.id}
-                  slug={article.slug}
-                />
+              {articles.map((article, index) => (
+                <div key={article.id} className="group">
+                  <OptimizedImage
+                    src={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                    alt={article.title}
+                    className="w-full h-48 object-cover rounded-t-xl group-hover:scale-105 transition-transform duration-300"
+                    priority={index < 3}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                  <ArticleCard
+                    title={article.title}
+                    excerpt={article.excerpt || ''}
+                    category={article.categories?.name || 'Uncategorized'}
+                    readTime={`${getReadTime(article.excerpt || '')} min read`}
+                    publishedAt={getRelativeTime(article.created_at)}
+                    imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                    type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
+                    articleId={article.id}
+                    slug={article.slug}
+                  />
+                </div>
               ))}
             </div>
 

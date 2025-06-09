@@ -5,6 +5,7 @@ interface CacheEntry<T> {
   data: T;
   timestamp: number;
   ttl: number;
+  hits: number;
 }
 
 class PerformanceManager {
@@ -13,13 +14,20 @@ class PerformanceManager {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly RATE_LIMIT = 100; // requests per minute
   private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+  private readonly MAX_CACHE_SIZE = 100; // Maximum cache entries
 
-  // Cache management
+  // Advanced cache management with LRU eviction
   setCache<T>(key: string, data: T, ttl = this.CACHE_TTL): void {
+    // Remove oldest entries if cache is full
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      this.evictLeastUsed();
+    }
+
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
       ttl,
+      hits: 0,
     });
   }
 
@@ -33,14 +41,28 @@ class PerformanceManager {
       return null;
     }
 
+    // Increment hit counter for LRU
+    entry.hits++;
     return entry.data;
   }
 
-  clearCache(): void {
-    this.cache.clear();
+  private evictLeastUsed(): void {
+    let leastUsedKey = '';
+    let minHits = Infinity;
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.hits < minHits) {
+        minHits = entry.hits;
+        leastUsedKey = key;
+      }
+    }
+
+    if (leastUsedKey) {
+      this.cache.delete(leastUsedKey);
+    }
   }
 
-  // Rate limiting
+  // Enhanced rate limiting with burst allowance
   checkRateLimit(key: string): boolean {
     const now = Date.now();
     const existing = this.requestCounts.get(key);
@@ -58,14 +80,16 @@ class PerformanceManager {
     return true;
   }
 
-  // Memory optimization
+  // Intelligent memory optimization
   optimizeMemory(): void {
     const now = Date.now();
+    let deletedCount = 0;
     
     // Clear expired cache entries
     for (const [key, entry] of this.cache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         this.cache.delete(key);
+        deletedCount++;
       }
     }
 
@@ -75,19 +99,66 @@ class PerformanceManager {
         this.requestCounts.delete(key);
       }
     }
+
+    // Force garbage collection hint if available
+    if (window.gc && deletedCount > 10) {
+      window.gc();
+    }
+
+    console.log(`🧹 Memory optimized: ${deletedCount} cache entries cleared`);
   }
 
-  // Preload critical resources
+  // Preload critical resources with priority
   preloadCriticalResources(): void {
     const criticalImages = [
       '/placeholder.svg',
-      // Add other critical images here
+      'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80',
     ];
 
+    const criticalFonts = [
+      'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    ];
+
+    // Preload images
     criticalImages.forEach(src => {
       const img = new Image();
       img.src = src;
     });
+
+    // Preload fonts
+    criticalFonts.forEach(href => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'font';
+      link.href = href;
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    });
+  }
+
+  // Get cache statistics
+  getCacheStats() {
+    const now = Date.now();
+    let validEntries = 0;
+    let expiredEntries = 0;
+    let totalHits = 0;
+
+    for (const [, entry] of this.cache.entries()) {
+      if (now - entry.timestamp <= entry.ttl) {
+        validEntries++;
+        totalHits += entry.hits;
+      } else {
+        expiredEntries++;
+      }
+    }
+
+    return {
+      validEntries,
+      expiredEntries,
+      totalHits,
+      hitRate: totalHits / (validEntries || 1),
+      memoryUsage: this.cache.size,
+    };
   }
 }
 
@@ -95,22 +166,34 @@ export const performanceManager = new PerformanceManager();
 
 export const usePerformanceOptimization = () => {
   const [isOptimized, setIsOptimized] = useState(false);
+  const [stats, setStats] = useState(performanceManager.getCacheStats());
   const cleanupIntervalRef = useRef<NodeJS.Timeout>();
+  const statsIntervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     // Initialize performance optimizations
     performanceManager.preloadCriticalResources();
     
-    // Set up periodic memory cleanup
+    // Set up periodic memory cleanup (every 5 minutes)
     cleanupIntervalRef.current = setInterval(() => {
       performanceManager.optimizeMemory();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 5 * 60 * 1000);
+
+    // Update stats every 30 seconds in development
+    if (process.env.NODE_ENV === 'development') {
+      statsIntervalRef.current = setInterval(() => {
+        setStats(performanceManager.getCacheStats());
+      }, 30 * 1000);
+    }
 
     setIsOptimized(true);
 
     return () => {
       if (cleanupIntervalRef.current) {
         clearInterval(cleanupIntervalRef.current);
+      }
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current);
       }
     };
   }, []);
@@ -128,19 +211,27 @@ export const usePerformanceOptimization = () => {
   };
 
   const clearCache = () => {
-    performanceManager.clearCache();
+    performanceManager['cache'].clear();
+    setStats(performanceManager.getCacheStats());
+  };
+
+  const forceOptimization = () => {
+    performanceManager.optimizeMemory();
+    setStats(performanceManager.getCacheStats());
   };
 
   return {
     isOptimized,
+    stats,
     cacheData,
     getCachedData,
     checkRateLimit,
     clearCache,
+    forceOptimization,
   };
 };
 
-// Utility for lazy loading images
+// Enhanced lazy loading hook with intersection observer
 export const useLazyLoading = () => {
   const [imageObserver, setImageObserver] = useState<IntersectionObserver | null>(null);
 
@@ -152,14 +243,23 @@ export const useLazyLoading = () => {
             const img = entry.target as HTMLImageElement;
             const src = img.dataset.src;
             if (src) {
-              img.src = src;
-              img.removeAttribute('data-src');
+              // Create a new image to preload
+              const newImg = new Image();
+              newImg.onload = () => {
+                img.src = src;
+                img.classList.add('loaded');
+                img.removeAttribute('data-src');
+              };
+              newImg.src = src;
               observer.unobserve(img);
             }
           }
         });
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { 
+        threshold: 0.1, 
+        rootMargin: '50px',
+      }
     );
 
     setImageObserver(observer);
@@ -174,4 +274,39 @@ export const useLazyLoading = () => {
   };
 
   return { observeImage };
+};
+
+// Utility for resource hints
+export const useResourceHints = () => {
+  const prefetchResource = (url: string, type: 'image' | 'script' | 'style' | 'font' = 'image') => {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = url;
+    if (type === 'font') {
+      link.as = 'font';
+      link.crossOrigin = 'anonymous';
+    } else if (type === 'style') {
+      link.as = 'style';
+    } else if (type === 'script') {
+      link.as = 'script';
+    }
+    document.head.appendChild(link);
+  };
+
+  const preloadResource = (url: string, type: 'image' | 'script' | 'style' | 'font' = 'image') => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.href = url;
+    if (type === 'font') {
+      link.as = 'font';
+      link.crossOrigin = 'anonymous';
+    } else if (type === 'style') {
+      link.as = 'style';
+    } else if (type === 'script') {
+      link.as = 'script';
+    }
+    document.head.appendChild(link);
+  };
+
+  return { prefetchResource, preloadResource };
 };

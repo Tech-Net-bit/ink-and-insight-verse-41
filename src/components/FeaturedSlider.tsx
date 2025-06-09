@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -6,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import OptimizedImage from './OptimizedImage';
+import { useDataPreloader } from '@/hooks/useDataPreloader';
 
 interface Article {
   id: string;
@@ -20,12 +21,7 @@ interface Article {
 
 const FeaturedSlider = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchFeaturedArticles();
-  }, []);
+  const { featuredArticles, isPreloading } = useDataPreloader({ preloadFeatured: true });
 
   useEffect(() => {
     if (emblaApi) {
@@ -37,48 +33,16 @@ const FeaturedSlider = () => {
     }
   }, [emblaApi]);
 
-  const fetchFeaturedArticles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('articles')
-        .select(`
-          id,
-          title,
-          excerpt,
-          featured_image_url,
-          slug,
-          created_at,
-          categories (name),
-          profiles (full_name)
-        `)
-        .eq('published', true)
-        .eq('featured', true)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) {
-        console.error('Error fetching featured articles:', error);
-        return;
-      }
-
-      setArticles(data || []);
-    } catch (error) {
-      console.error('Error fetching featured articles:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
 
-  if (loading) {
+  if (isPreloading) {
     return (
       <div className="relative h-96 bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse rounded-2xl" />
     );
   }
 
-  if (articles.length === 0) {
+  if (!featuredArticles || featuredArticles.length === 0) {
     return (
       <div className="relative h-96 bg-gradient-to-r from-accent/10 to-accent/20 rounded-2xl flex items-center justify-center">
         <div className="text-center">
@@ -93,13 +57,15 @@ const FeaturedSlider = () => {
     <div className="relative">
       <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
-          {articles.map((article) => (
+          {featuredArticles.map((article: any, index: number) => (
             <div key={article.id} className="flex-[0_0_100%] min-w-0">
               <div className="relative h-96 overflow-hidden">
-                <img
+                <OptimizedImage
                   src={article.featured_image_url || 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=2000&q=80'}
                   alt={article.title}
                   className="w-full h-full object-cover"
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
@@ -127,7 +93,7 @@ const FeaturedSlider = () => {
         </div>
       </div>
 
-      {articles.length > 1 && (
+      {featuredArticles.length > 1 && (
         <>
           <Button
             variant="outline"

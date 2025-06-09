@@ -1,24 +1,66 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>vzontech</title>
-    <meta name="description" content="VzonTech" />
-    <meta name="author" content="Lovable" />
+    <meta name="description" content="VzonTech - Leading Technology News and Reviews" />
+    <meta name="author" content="VzonTech" />
 
-    <meta property="og:title" content="vzontech" />
-    <meta property="og:description" content="VzonTech" />
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="dns-prefetch" href="https://supabase.com">
+    
+    <!-- Critical CSS (inlined for faster loading) -->
+    <style>
+      .loading-skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+      }
+      @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+    </style>
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="VzonTech - Technology News & Reviews" />
+    <meta property="og:description" content="Stay updated with the latest technology news, in-depth reviews, and expert insights" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://vzontech.com/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://vzontech.com" />
 
-    <meta name="twitter:card" content="vzontech" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@vzontech" />
+    <meta name="twitter:title" content="VzonTech - Technology News & Reviews" />
+    <meta name="twitter:description" content="Stay updated with the latest technology news, in-depth reviews, and expert insights" />
     <meta name="twitter:image" content="https://vzontech.com/opengraph-image-p98pqg.png" />
+
+    <!-- Performance hints -->
+    <link rel="prefetch" href="/placeholder.svg">
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Register service worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
   </body>
 </html>
