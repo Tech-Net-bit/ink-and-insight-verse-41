@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -276,28 +275,34 @@ const SiteSettings = () => {
                 <div>
                   <Label>Logo</Label>
                   <ImageUpload
-                    currentImageUrl={settings.logo_url}
                     onImageUploaded={(url) => handleInputChange('logo_url', url)}
                     className="mt-2"
                   />
+                  {settings.logo_url && (
+                    <img src={settings.logo_url} alt="Logo" className="mt-2 h-16 w-auto" />
+                  )}
                 </div>
                 
                 <div>
                   <Label>Favicon</Label>
                   <ImageUpload
-                    currentImageUrl={settings.favicon_url}
                     onImageUploaded={(url) => handleInputChange('favicon_url', url)}
                     className="mt-2"
                   />
+                  {settings.favicon_url && (
+                    <img src={settings.favicon_url} alt="Favicon" className="mt-2 h-8 w-8" />
+                  )}
                 </div>
                 
                 <div>
                   <Label>Hero Background Image</Label>
                   <ImageUpload
-                    currentImageUrl={settings.hero_image_url}
                     onImageUploaded={(url) => handleInputChange('hero_image_url', url)}
                     className="mt-2"
                   />
+                  {settings.hero_image_url && (
+                    <img src={settings.hero_image_url} alt="Hero Background" className="mt-2 h-32 w-auto rounded" />
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -439,8 +444,8 @@ const SiteSettings = () => {
         {/* Values & Team Tab */}
         <TabsContent value="values-team" className="space-y-6">
           <ValuesTeamManager
-            customValues={settings.custom_values}
-            customTeamMembers={settings.custom_team_members}
+            values={settings.custom_values}
+            teamMembers={settings.custom_team_members}
             showDefaultValues={settings.show_default_values}
             showDefaultTeam={settings.show_default_team}
             onValuesChange={(values) => handleInputChange('custom_values', values)}

@@ -19,7 +19,7 @@ const Articles = () => import("./pages/Articles");
 const ArticleDetail = () => import("./pages/ArticleDetail");
 const Categories = () => import("./pages/Categories");
 const About = () => import("./pages/About");
-const AdminLayout = () => import("./components/admin/AdminLayout").then(module => ({ default: module.default }));
+const AdminLayout = () => import("./components/admin/AdminLayout");
 const ArticleManagement = () => import("./components/admin/ArticleManagement");
 const CategoryManagement = () => import("./components/admin/CategoryManagement");
 const UserManagement = () => import("./components/admin/UserManagement");
@@ -71,16 +71,17 @@ const AppContent = () => {
           <Route path="/categories" element={<LazyRoute component={Categories} />} />
           <Route path="/about" element={<LazyRoute component={About} />} />
           <Route path="/admin" element={<LazyRoute component={Admin} />} />
-          <Route path="/admin/*" element={
-            <LazyRoute 
-              component={AdminLayout} 
-              fallback={
-                <div className="flex items-center justify-center min-h-screen">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              }
-            />
-          } />
+          
+          {/* Admin routes with nested routing */}
+          <Route path="/admin/*" element={<LazyRoute component={AdminLayout} />}>
+            <Route path="articles" element={<LazyRoute component={ArticleManagement} />} />
+            <Route path="categories" element={<LazyRoute component={CategoryManagement} />} />
+            <Route path="users" element={<LazyRoute component={UserManagement} />} />
+            <Route path="settings" element={<LazyRoute component={SiteSettings} />} />
+            <Route path="database" element={<LazyRoute component={DatabaseManager} />} />
+            <Route path="limits" element={<LazyRoute component={UsageLimits} />} />
+          </Route>
+          
           <Route path="*" element={<LazyRoute component={NotFound} />} />
         </Routes>
       </BrowserRouter>

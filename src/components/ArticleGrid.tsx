@@ -27,9 +27,13 @@ const ArticleGrid = () => {
   const { allArticles, isPreloading } = useDataPreloader();
 
   useEffect(() => {
-    // Use preloaded data if available
+    // Use preloaded data if available and ensure article_type is present
     if (allArticles && allArticles.length > 0) {
-      setArticles(allArticles);
+      const typedArticles = allArticles.map(article => ({
+        ...article,
+        article_type: article.article_type || 'blog'
+      }));
+      setArticles(typedArticles);
       setLoading(false);
       setHasMore(allArticles.length >= 6);
     } else {
@@ -84,7 +88,10 @@ const ArticleGrid = () => {
         return;
       }
 
-      const articleData = data || [];
+      const articleData = (data || []).map(article => ({
+        ...article,
+        article_type: article.article_type || 'blog'
+      }));
       
       // Cache the result for 1 hour
       cacheData(cacheKey, articleData, 60 * 60 * 1000);

@@ -11,7 +11,9 @@ import {
   Tag,
   LogOut,
   Menu,
-  X
+  X,
+  Database,
+  BarChart3
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -28,7 +30,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { name: 'Articles', href: '/admin/articles', icon: FileText },
     { name: 'Categories', href: '/admin/categories', icon: Tag },
     { name: 'Users', href: '/admin/users', icon: Users },
-    { name: 'Site Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Database', href: '/admin/database', icon: Database },
+    { name: 'Usage Limits', href: '/admin/limits', icon: BarChart3 },
   ];
 
   return (
