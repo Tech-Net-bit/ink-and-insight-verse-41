@@ -10,6 +10,50 @@ interface PreloadOptions {
   preloadSettings?: boolean;
 }
 
+interface Article {
+  id: string;
+  title: string;
+  excerpt: string;
+  featured_image_url: string;
+  slug: string;
+  created_at: string;
+  categories: { name: string } | null;
+  profiles: { full_name: string };
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface SiteSettings {
+  id: string;
+  site_name: string;
+  site_description: string;
+  hero_title: string;
+  hero_subtitle: string;
+  hero_image_url: string | null;
+  primary_color: string;
+  secondary_color: string;
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  favicon_url: string;
+  logo_url: string;
+  social_twitter: string;
+  social_facebook: string;
+  social_linkedin: string;
+  social_instagram: string;
+  about_content?: string;
+  about_mission?: string;
+  about_vision?: string;
+  custom_values?: any[];
+  custom_team_members?: any[];
+  show_default_values?: boolean;
+  show_default_team?: boolean;
+}
+
 export const useDataPreloader = (options: PreloadOptions = {}) => {
   const queryClient = useQueryClient();
   const { cacheData, getCachedData } = usePerformanceOptimization();
@@ -17,8 +61,8 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
   // Preload featured articles
   const { data: featuredArticles } = useQuery({
     queryKey: ['featured-articles-preload'],
-    queryFn: async () => {
-      const cached = getCachedData('featured-articles');
+    queryFn: async (): Promise<Article[]> => {
+      const cached = getCachedData<Article[]>('featured-articles');
       if (cached) return cached;
 
       const { data, error } = await supabase
@@ -40,18 +84,20 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
 
       if (error) throw error;
       
-      cacheData('featured-articles', data, 5 * 60 * 1000); // 5 min cache
-      return data;
+      const articles = data || [];
+      cacheData('featured-articles', articles, 5 * 60 * 1000); // 5 min cache
+      return articles;
     },
     enabled: options.preloadFeatured !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Preload categories
   const { data: categories } = useQuery({
     queryKey: ['categories-preload'],
-    queryFn: async () => {
-      const cached = getCachedData('categories');
+    queryFn: async (): Promise<Category[]> => {
+      const cached = getCachedData<Category[]>('categories');
       if (cached) return cached;
 
       const { data, error } = await supabase
@@ -61,18 +107,20 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
 
       if (error) throw error;
       
-      cacheData('categories', data, 10 * 60 * 1000); // 10 min cache
-      return data;
+      const categoryData = data || [];
+      cacheData('categories', categoryData, 10 * 60 * 1000); // 10 min cache
+      return categoryData;
     },
     enabled: options.preloadCategories !== false,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
   // Preload site settings
   const { data: settings } = useQuery({
     queryKey: ['site-settings-preload'],
-    queryFn: async () => {
-      const cached = getCachedData('site-settings');
+    queryFn: async (): Promise<SiteSettings | null> => {
+      const cached = getCachedData<SiteSettings>('site-settings');
       if (cached) return cached;
 
       const { data, error } = await supabase
@@ -82,18 +130,21 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
 
       if (error && error.code !== 'PGRST116') throw error;
       
-      cacheData('site-settings', data, 15 * 60 * 1000); // 15 min cache
+      if (data) {
+        cacheData('site-settings', data, 15 * 60 * 1000); // 15 min cache
+      }
       return data;
     },
     enabled: options.preloadSettings !== false,
     staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
   });
 
   // Preload critical images
   useEffect(() => {
     const preloadImages = async () => {
-      if (featuredArticles) {
-        featuredArticles.forEach((article: any) => {
+      if (featuredArticles && Array.isArray(featuredArticles)) {
+        featuredArticles.forEach((article: Article) => {
           if (article.featured_image_url) {
             const img = new Image();
             img.src = article.featured_image_url;
@@ -106,8 +157,8 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
   }, [featuredArticles]);
 
   return {
-    featuredArticles,
-    categories,
+    featuredArticles: featuredArticles || [],
+    categories: categories || [],
     settings,
     isPreloading: !featuredArticles && !categories && !settings,
   };

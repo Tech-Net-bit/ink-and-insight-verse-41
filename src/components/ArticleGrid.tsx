@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import ArticleCard from './ArticleCard';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +19,7 @@ interface Article {
 
 const ArticleGrid = () => {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const { cacheData, getCachedData, checkRateLimit } = usePerformanceOptimization();
@@ -33,11 +34,13 @@ const ArticleGrid = () => {
       return;
     }
 
+    setLoading(pageNum === 1);
+
     try {
       const cacheKey = `articles-page-${pageNum}`;
-      const cached = getCachedData(cacheKey);
+      const cached = getCachedData<Article[]>(cacheKey);
       
-      if (cached) {
+      if (cached && Array.isArray(cached)) {
         if (pageNum === 1) {
           setArticles(cached);
         } else {
@@ -72,16 +75,18 @@ const ArticleGrid = () => {
         return;
       }
 
+      const articleData = data || [];
+      
       // Cache the result
-      cacheData(cacheKey, data || [], 3 * 60 * 1000); // 3 min cache
+      cacheData(cacheKey, articleData, 3 * 60 * 1000); // 3 min cache
 
       if (pageNum === 1) {
-        setArticles(data || []);
+        setArticles(articleData);
       } else {
-        setArticles(prev => [...prev, ...(data || [])]);
+        setArticles(prev => [...prev, ...articleData]);
       }
 
-      setHasMore((data || []).length === limit);
+      setHasMore(articleData.length === limit);
     } catch (error) {
       console.error('Error fetching articles:', error);
     } finally {
@@ -154,7 +159,7 @@ const ArticleGrid = () => {
           </p>
         </div>
 
-        {articles.length === 0 ? (
+        {articles.length === 0 && !loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
               No articles found. Check back later for new content!

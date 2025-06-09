@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import OptimizedImage from './OptimizedImage';
 import { useDataPreloader } from '@/hooks/useDataPreloader';
@@ -14,7 +14,7 @@ interface Article {
   excerpt: string;
   featured_image_url: string;
   slug: string;
-  categories: { name: string };
+  categories: { name: string } | null;
   profiles: { full_name: string };
   created_at: string;
 }
@@ -36,13 +36,16 @@ const FeaturedSlider = () => {
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
 
+  // Cast to Article array for type safety
+  const articles = Array.isArray(featuredArticles) ? featuredArticles as Article[] : [];
+
   if (isPreloading) {
     return (
       <div className="relative h-96 bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse rounded-2xl" />
     );
   }
 
-  if (!featuredArticles || featuredArticles.length === 0) {
+  if (!articles || articles.length === 0) {
     return (
       <div className="relative h-96 bg-gradient-to-r from-accent/10 to-accent/20 rounded-2xl flex items-center justify-center">
         <div className="text-center">
@@ -57,7 +60,7 @@ const FeaturedSlider = () => {
     <div className="relative">
       <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
-          {featuredArticles.map((article: any, index: number) => (
+          {articles.map((article: Article, index: number) => (
             <div key={article.id} className="flex-[0_0_100%] min-w-0">
               <div className="relative h-96 overflow-hidden">
                 <OptimizedImage
@@ -93,7 +96,7 @@ const FeaturedSlider = () => {
         </div>
       </div>
 
-      {featuredArticles.length > 1 && (
+      {articles.length > 1 && (
         <>
           <Button
             variant="outline"

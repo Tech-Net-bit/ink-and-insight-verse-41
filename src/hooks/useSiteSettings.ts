@@ -55,7 +55,14 @@ export const useSiteSettings = () => {
           },
           (payload) => {
             console.log('Site settings updated:', payload);
-            setSettings(payload.new as SiteSettings);
+            // Properly type the payload data
+            const newData = payload.new as any;
+            const typedSettings: SiteSettings = {
+              ...newData,
+              custom_values: Array.isArray(newData.custom_values) ? newData.custom_values : [],
+              custom_team_members: Array.isArray(newData.custom_team_members) ? newData.custom_team_members : [],
+            };
+            setSettings(typedSettings);
           }
         )
         .subscribe();
@@ -97,7 +104,14 @@ export const useSiteSettings = () => {
         return;
       }
 
-      setSettings(data);
+      // Properly type and handle the data
+      const typedSettings: SiteSettings = {
+        ...data,
+        custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
+        custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
+      };
+
+      setSettings(typedSettings);
     } catch (error) {
       console.error('Error fetching site settings:', error);
     } finally {
