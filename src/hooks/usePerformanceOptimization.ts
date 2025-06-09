@@ -11,10 +11,10 @@ interface CacheEntry<T> {
 class PerformanceManager {
   private cache = new Map<string, CacheEntry<any>>();
   private requestCounts = new Map<string, { count: number; resetTime: number }>();
-  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour default
   private readonly RATE_LIMIT = 100; // requests per minute
   private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-  private readonly MAX_CACHE_SIZE = 100; // Maximum cache entries
+  private readonly MAX_CACHE_SIZE = 200; // Increased cache size
 
   // Advanced cache management with LRU eviction
   setCache<T>(key: string, data: T, ttl = this.CACHE_TTL): void {
@@ -29,21 +29,56 @@ class PerformanceManager {
       ttl,
       hits: 0,
     });
+
+    // Also store in localStorage for persistence
+    try {
+      localStorage.setItem(`cache_${key}`, JSON.stringify({
+        data,
+        timestamp: Date.now(),
+        ttl,
+      }));
+    } catch (error) {
+      console.warn('Failed to save to localStorage:', error);
+    }
   }
 
   getCache<T>(key: string): T | null {
     const entry = this.cache.get(key);
-    if (!entry) return null;
-
-    const now = Date.now();
-    if (now - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
-      return null;
+    if (entry) {
+      const now = Date.now();
+      if (now - entry.timestamp <= entry.ttl) {
+        entry.hits++;
+        return entry.data;
+      } else {
+        this.cache.delete(key);
+        localStorage.removeItem(`cache_${key}`);
+      }
     }
 
-    // Increment hit counter for LRU
-    entry.hits++;
-    return entry.data;
+    // Try localStorage fallback
+    try {
+      const stored = localStorage.getItem(`cache_${key}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const now = Date.now();
+        if (now - parsed.timestamp <= parsed.ttl) {
+          // Restore to memory cache
+          this.cache.set(key, {
+            data: parsed.data,
+            timestamp: parsed.timestamp,
+            ttl: parsed.ttl,
+            hits: 1,
+          });
+          return parsed.data;
+        } else {
+          localStorage.removeItem(`cache_${key}`);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to read from localStorage:', error);
+    }
+
+    return null;
   }
 
   private evictLeastUsed(): void {
@@ -59,6 +94,7 @@ class PerformanceManager {
 
     if (leastUsedKey) {
       this.cache.delete(leastUsedKey);
+      localStorage.removeItem(`cache_${leastUsedKey}`);
     }
   }
 
@@ -89,6 +125,7 @@ class PerformanceManager {
     for (const [key, entry] of this.cache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         this.cache.delete(key);
+        localStorage.removeItem(`cache_${key}`);
         deletedCount++;
       }
     }
@@ -100,12 +137,34 @@ class PerformanceManager {
       }
     }
 
-    // Force garbage collection hint if available
-    if (window.gc && deletedCount > 10) {
-      window.gc();
-    }
+    // Clear expired localStorage items
+    this.cleanupLocalStorage();
 
     console.log(`🧹 Memory optimized: ${deletedCount} cache entries cleared`);
+  }
+
+  private cleanupLocalStorage(): void {
+    try {
+      const keys = Object.keys(localStorage);
+      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
+      
+      cacheKeys.forEach(key => {
+        try {
+          const item = localStorage.getItem(key);
+          if (item) {
+            const parsed = JSON.parse(item);
+            const now = Date.now();
+            if (now - parsed.timestamp > parsed.ttl) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (error) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to cleanup localStorage:', error);
+    }
   }
 
   // Preload critical resources with priority
@@ -174,10 +233,10 @@ export const usePerformanceOptimization = () => {
     // Initialize performance optimizations
     performanceManager.preloadCriticalResources();
     
-    // Set up periodic memory cleanup (every 5 minutes)
+    // Set up periodic memory cleanup (every 2 minutes for better performance)
     cleanupIntervalRef.current = setInterval(() => {
       performanceManager.optimizeMemory();
-    }, 5 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
     // Update stats every 30 seconds in development
     if (process.env.NODE_ENV === 'development') {
@@ -212,6 +271,11 @@ export const usePerformanceOptimization = () => {
 
   const clearCache = () => {
     performanceManager['cache'].clear();
+    // Clear localStorage cache as well
+    const keys = Object.keys(localStorage);
+    keys.filter(key => key.startsWith('cache_')).forEach(key => {
+      localStorage.removeItem(key);
+    });
     setStats(performanceManager.getCacheStats());
   };
 

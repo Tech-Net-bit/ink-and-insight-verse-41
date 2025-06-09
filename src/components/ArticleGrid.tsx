@@ -4,6 +4,7 @@ import ArticleCard from './ArticleCard';
 import { supabase } from '@/integrations/supabase/client';
 import OptimizedImage from './OptimizedImage';
 import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
+import { useDataPreloader } from '@/hooks/useDataPreloader';
 
 interface Article {
   id: string;
@@ -23,10 +24,18 @@ const ArticleGrid = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const { cacheData, getCachedData, checkRateLimit } = usePerformanceOptimization();
+  const { allArticles, isPreloading } = useDataPreloader();
 
   useEffect(() => {
-    fetchArticles();
-  }, []);
+    // Use preloaded data if available
+    if (allArticles && allArticles.length > 0) {
+      setArticles(allArticles);
+      setLoading(false);
+      setHasMore(allArticles.length >= 6);
+    } else {
+      fetchArticles();
+    }
+  }, [allArticles]);
 
   const fetchArticles = async (pageNum = 1) => {
     if (!checkRateLimit('articles-fetch')) {
@@ -77,8 +86,8 @@ const ArticleGrid = () => {
 
       const articleData = data || [];
       
-      // Cache the result
-      cacheData(cacheKey, articleData, 3 * 60 * 1000); // 3 min cache
+      // Cache the result for 1 hour
+      cacheData(cacheKey, articleData, 60 * 60 * 1000);
 
       if (pageNum === 1) {
         setArticles(articleData);
@@ -123,7 +132,8 @@ const ArticleGrid = () => {
     }
   };
 
-  if (loading && articles.length === 0) {
+  // Show cached content immediately if available
+  if ((loading && articles.length === 0) || isPreloading) {
     return (
       <section className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -169,25 +179,29 @@ const ArticleGrid = () => {
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {articles.map((article, index) => (
-                <div key={article.id} className="group">
-                  <OptimizedImage
-                    src={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
-                    alt={article.title}
-                    className="w-full h-48 object-cover rounded-t-xl group-hover:scale-105 transition-transform duration-300"
-                    priority={index < 3}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                  <ArticleCard
-                    title={article.title}
-                    excerpt={article.excerpt || ''}
-                    category={article.categories?.name || 'Uncategorized'}
-                    readTime={`${getReadTime(article.excerpt || '')} min read`}
-                    publishedAt={getRelativeTime(article.created_at)}
-                    imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
-                    type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
-                    articleId={article.id}
-                    slug={article.slug}
-                  />
+                <div key={article.id} className="group relative">
+                  <div className="relative overflow-hidden rounded-t-xl">
+                    <OptimizedImage
+                      src={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                      alt={article.title}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      priority={index < 3}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
+                  <div className="bg-white rounded-b-xl shadow-sm">
+                    <ArticleCard
+                      title={article.title}
+                      excerpt={article.excerpt || ''}
+                      category={article.categories?.name || 'Uncategorized'}
+                      readTime={`${getReadTime(article.excerpt || '')} min read`}
+                      publishedAt={getRelativeTime(article.created_at)}
+                      imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                      type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
+                      articleId={article.id}
+                      slug={article.slug}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

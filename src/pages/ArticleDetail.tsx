@@ -8,6 +8,7 @@ import ReviewSystem from '@/components/ReviewSystem';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, ArrowLeft, Star } from 'lucide-react';
+import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 
 interface Article {
   id: string;
@@ -30,6 +31,7 @@ const ArticleDetail = () => {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [averageRating, setAverageRating] = useState<number | null>(null);
+  const { cacheData, getCachedData } = usePerformanceOptimization();
 
   useEffect(() => {
     if (slug) {
@@ -39,6 +41,27 @@ const ArticleDetail = () => {
   }, [slug]);
 
   const fetchArticle = async () => {
+    try {
+      // Check cache first for instant loading
+      const cacheKey = `article-${slug}`;
+      const cached = getCachedData<Article>(cacheKey);
+      
+      if (cached) {
+        setArticle(cached);
+        setLoading(false);
+        // Still fetch fresh data in background
+        fetchFreshArticle();
+        return;
+      }
+
+      await fetchFreshArticle();
+    } catch (error) {
+      console.error('Error fetching article:', error);
+      setLoading(false);
+    }
+  };
+
+  const fetchFreshArticle = async () => {
     try {
       const { data, error } = await supabase
         .from('articles')
@@ -52,16 +75,29 @@ const ArticleDetail = () => {
         .single();
 
       if (error) throw error;
+      
+      // Cache for 1 hour
+      const cacheKey = `article-${slug}`;
+      cacheData(cacheKey, data, 60 * 60 * 1000);
+      
       setArticle(data);
+      setLoading(false);
     } catch (error) {
-      console.error('Error fetching article:', error);
-    } finally {
+      console.error('Error fetching fresh article:', error);
       setLoading(false);
     }
   };
 
   const fetchAverageRating = async () => {
     try {
+      const cacheKey = `rating-${slug}`;
+      const cached = getCachedData<number>(cacheKey);
+      
+      if (cached) {
+        setAverageRating(cached);
+        return;
+      }
+
       const { data: articleData } = await supabase
         .from('articles')
         .select('id')
@@ -76,7 +112,10 @@ const ArticleDetail = () => {
 
         if (!error && data && data.length > 0) {
           const avg = data.reduce((sum, review) => sum + review.rating, 0) / data.length;
-          setAverageRating(Math.round(avg * 10) / 10);
+          const roundedAvg = Math.round(avg * 10) / 10;
+          setAverageRating(roundedAvg);
+          // Cache rating for 30 minutes
+          cacheData(cacheKey, roundedAvg, 30 * 60 * 1000);
         }
       }
     } catch (error) {
@@ -100,7 +139,8 @@ const ArticleDetail = () => {
     }
   };
 
-  if (loading) {
+  // Show cached content immediately
+  if (loading && !article) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -120,7 +160,7 @@ const ArticleDetail = () => {
     );
   }
 
-  if (!article) {
+  if (!article && !loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />

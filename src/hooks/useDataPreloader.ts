@@ -58,8 +58,8 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
   const queryClient = useQueryClient();
   const { cacheData, getCachedData } = usePerformanceOptimization();
 
-  // Preload featured articles
-  const { data: featuredArticles } = useQuery({
+  // Preload featured articles with aggressive caching
+  const { data: featuredArticles, isLoading: featuredLoading } = useQuery({
     queryKey: ['featured-articles-preload'],
     queryFn: async (): Promise<Article[]> => {
       const cached = getCachedData<Article[]>('featured-articles');
@@ -85,16 +85,49 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (error) throw error;
       
       const articles = data || [];
-      cacheData('featured-articles', articles, 5 * 60 * 1000); // 5 min cache
+      cacheData('featured-articles', articles, 60 * 60 * 1000); // 1 hour cache
       return articles;
     },
     enabled: options.preloadFeatured !== false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
+  });
+
+  // Preload all articles for instant navigation
+  const { data: allArticles } = useQuery({
+    queryKey: ['all-articles-preload'],
+    queryFn: async (): Promise<Article[]> => {
+      const cached = getCachedData<Article[]>('all-articles');
+      if (cached) return cached;
+
+      const { data, error } = await supabase
+        .from('articles')
+        .select(`
+          id,
+          title,
+          excerpt,
+          featured_image_url,
+          slug,
+          created_at,
+          categories (name),
+          profiles (full_name)
+        `)
+        .eq('published', true)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      
+      const articles = data || [];
+      cacheData('all-articles', articles, 30 * 60 * 1000); // 30 min cache
+      return articles;
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 2 * 60 * 60 * 1000, // 2 hours
   });
 
   // Preload categories
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories-preload'],
     queryFn: async (): Promise<Category[]> => {
       const cached = getCachedData<Category[]>('categories');
@@ -108,16 +141,16 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (error) throw error;
       
       const categoryData = data || [];
-      cacheData('categories', categoryData, 10 * 60 * 1000); // 10 min cache
+      cacheData('categories', categoryData, 60 * 60 * 1000); // 1 hour cache
       return categoryData;
     },
     enabled: options.preloadCategories !== false,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 
   // Preload site settings
-  const { data: settings } = useQuery({
+  const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['site-settings-preload'],
     queryFn: async (): Promise<SiteSettings | null> => {
       const cached = getCachedData<SiteSettings>('site-settings');
@@ -131,35 +164,60 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (error && error.code !== 'PGRST116') throw error;
       
       if (data) {
-        cacheData('site-settings', data, 15 * 60 * 1000); // 15 min cache
+        // Handle JSON data properly
+        const typedSettings: SiteSettings = {
+          ...data,
+          custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
+          custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
+        };
+        cacheData('site-settings', typedSettings, 60 * 60 * 1000); // 1 hour cache
+        return typedSettings;
       }
-      return data;
+      return null;
     },
     enabled: options.preloadSettings !== false,
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    gcTime: 20 * 60 * 1000, // 20 minutes
+    staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 
-  // Preload critical images
+  // Preload critical images immediately
   useEffect(() => {
     const preloadImages = async () => {
+      const imagesToPreload = [];
+      
       if (featuredArticles && Array.isArray(featuredArticles)) {
         featuredArticles.forEach((article: Article) => {
           if (article.featured_image_url) {
-            const img = new Image();
-            img.src = article.featured_image_url;
+            imagesToPreload.push(article.featured_image_url);
           }
         });
       }
+
+      if (allArticles && Array.isArray(allArticles)) {
+        allArticles.slice(0, 10).forEach((article: Article) => {
+          if (article.featured_image_url) {
+            imagesToPreload.push(article.featured_image_url);
+          }
+        });
+      }
+
+      // Preload images in background
+      imagesToPreload.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
     };
 
-    preloadImages();
-  }, [featuredArticles]);
+    if (!featuredLoading && !categoriesLoading && !settingsLoading) {
+      preloadImages();
+    }
+  }, [featuredArticles, allArticles, featuredLoading, categoriesLoading, settingsLoading]);
 
   return {
     featuredArticles: featuredArticles || [],
+    allArticles: allArticles || [],
     categories: categories || [],
     settings,
-    isPreloading: !featuredArticles && !categories && !settings,
+    isPreloading: featuredLoading || categoriesLoading || settingsLoading,
   };
 };

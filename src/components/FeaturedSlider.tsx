@@ -39,7 +39,8 @@ const FeaturedSlider = () => {
   // Cast to Article array for type safety
   const articles = Array.isArray(featuredArticles) ? featuredArticles as Article[] : [];
 
-  if (isPreloading) {
+  // Don't show loading if we have cached articles
+  if (isPreloading && articles.length === 0) {
     return (
       <div className="relative h-96 bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse rounded-2xl" />
     );
