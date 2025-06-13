@@ -88,7 +88,17 @@ const ArticleGrid = () => {
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {articles.map((article) => (
-              <ArticleCard key={article.id} articleId={article.id} />
+              <ArticleCard 
+                key={article.id} 
+                articleId={article.id}
+                title={article.title}
+                excerpt={article.excerpt || ''}
+                category={article.categories?.name || 'Uncategorized'}
+                readTime={5}
+                imageUrl={article.featured_image_url || ''}
+                slug={article.slug}
+                author={article.author}
+              />
             ))}
           </div>
         )}
