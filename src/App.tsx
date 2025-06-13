@@ -5,7 +5,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { AuthProvider } from '@/hooks/useAuth';
 
 // Lazy load components for better performance
 const Index = lazy(() => import('./pages/Index'));
@@ -42,36 +41,34 @@ const LazyRoute = ({ children }: { children: React.ReactNode }) => (
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LazyRoute><Index /></LazyRoute>} />
-              <Route path="/about" element={<LazyRoute><About /></LazyRoute>} />
-              <Route path="/articles" element={<LazyRoute><Articles /></LazyRoute>} />
-              <Route path="/article/:slug" element={<LazyRoute><ArticleDetail /></LazyRoute>} />
-              <Route path="/categories" element={<LazyRoute><Categories /></LazyRoute>} />
-              <Route path="/auth" element={<LazyRoute><Auth /></LazyRoute>} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<LazyRoute><Admin /></LazyRoute>}>
-                <Route index element={<LazyRoute><AdminDashboard /></LazyRoute>} />
-                <Route path="articles" element={<LazyRoute><ArticleManagement /></LazyRoute>} />
-                <Route path="categories" element={<LazyRoute><CategoryManagement /></LazyRoute>} />
-                <Route path="users" element={<LazyRoute><UserManagement /></LazyRoute>} />
-                <Route path="settings" element={<LazyRoute><SiteSettings /></LazyRoute>} />
-                <Route path="database" element={<LazyRoute><DatabaseManager /></LazyRoute>} />
-                <Route path="database-tables" element={<LazyRoute><DatabaseTables /></LazyRoute>} />
-                <Route path="usage" element={<LazyRoute><UsageLimits /></LazyRoute>} />
-              </Route>
-              
-              <Route path="*" element={<LazyRoute><NotFound /></LazyRoute>} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LazyRoute><Index /></LazyRoute>} />
+            <Route path="/about" element={<LazyRoute><About /></LazyRoute>} />
+            <Route path="/articles" element={<LazyRoute><Articles /></LazyRoute>} />
+            <Route path="/article/:slug" element={<LazyRoute><ArticleDetail /></LazyRoute>} />
+            <Route path="/categories" element={<LazyRoute><Categories /></LazyRoute>} />
+            <Route path="/auth" element={<LazyRoute><Auth /></LazyRoute>} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<LazyRoute><Admin /></LazyRoute>}>
+              <Route index element={<LazyRoute><AdminDashboard /></LazyRoute>} />
+              <Route path="articles" element={<LazyRoute><ArticleManagement /></LazyRoute>} />
+              <Route path="categories" element={<LazyRoute><CategoryManagement /></LazyRoute>} />
+              <Route path="users" element={<LazyRoute><UserManagement /></LazyRoute>} />
+              <Route path="settings" element={<LazyRoute><SiteSettings /></LazyRoute>} />
+              <Route path="database" element={<LazyRoute><DatabaseManager /></LazyRoute>} />
+              <Route path="database-tables" element={<LazyRoute><DatabaseTables /></LazyRoute>} />
+              <Route path="usage" element={<LazyRoute><UsageLimits /></LazyRoute>} />
+            </Route>
+            
+            <Route path="*" element={<LazyRoute><NotFound /></LazyRoute>} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
