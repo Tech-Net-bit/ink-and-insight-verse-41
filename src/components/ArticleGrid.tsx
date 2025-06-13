@@ -1,10 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import ArticleCard from './ArticleCard';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import OptimizedImage from './OptimizedImage';
+import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
+import { useDataPreloader } from '@/hooks/useDataPreloader';
 
 interface Article {
   id: string;
@@ -13,74 +13,96 @@ interface Article {
   featured_image_url: string;
   slug: string;
   created_at: string;
-  published: boolean;
-  featured: boolean;
-  reading_time: number;
-  category_id: string;
-  categories?: {
-    name: string;
-    slug: string;
-  };
+  article_type: string;
+  categories: { name: string } | null;
+  profiles: { full_name: string };
 }
 
-interface ArticleGridProps {
-  featured?: boolean;
-  limit?: number;
-  categoryId?: string;
-}
-
-const ArticleGrid = ({ featured = false, limit, categoryId }: ArticleGridProps) => {
+const ArticleGrid = () => {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState('newest');
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const { cacheData, getCachedData, checkRateLimit } = usePerformanceOptimization();
+  const { allArticles, isPreloading } = useDataPreloader();
 
   useEffect(() => {
-    fetchArticles();
-  }, [featured, limit, categoryId, searchTerm, sortOrder]);
+    // Use preloaded data if available and ensure article_type is present
+    if (allArticles && allArticles.length > 0) {
+      const typedArticles = allArticles.map(article => ({
+        ...article,
+        article_type: article.article_type || 'blog'
+      }));
+      setArticles(typedArticles);
+      setLoading(false);
+      setHasMore(allArticles.length >= 6);
+    } else {
+      fetchArticles();
+    }
+  }, [allArticles]);
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (pageNum = 1) => {
+    if (!checkRateLimit('articles-fetch')) {
+      console.warn('Rate limit exceeded for articles fetch');
+      return;
+    }
+
+    setLoading(pageNum === 1);
+
     try {
-      let query = supabase
+      const cacheKey = `articles-page-${pageNum}`;
+      const cached = getCachedData<Article[]>(cacheKey);
+      
+      if (cached && Array.isArray(cached)) {
+        if (pageNum === 1) {
+          setArticles(cached);
+        } else {
+          setArticles(prev => [...prev, ...cached]);
+        }
+        setLoading(false);
+        return;
+      }
+
+      const limit = 6;
+      const offset = (pageNum - 1) * limit;
+
+      const { data, error } = await supabase
         .from('articles')
         .select(`
-          *,
-          categories (
-            name,
-            slug
-          )
+          id,
+          title,
+          excerpt,
+          featured_image_url,
+          slug,
+          created_at,
+          article_type,
+          categories (name),
+          profiles (full_name)
         `)
-        .eq('published', true);
+        .eq('published', true)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
-      if (featured) {
-        query = query.eq('featured', true);
+      if (error) {
+        console.error('Error fetching articles:', error);
+        return;
       }
 
-      if (categoryId) {
-        query = query.eq('category_id', categoryId);
+      const articleData = (data || []).map(article => ({
+        ...article,
+        article_type: article.article_type || 'blog'
+      }));
+      
+      // Cache the result for 1 hour
+      cacheData(cacheKey, articleData, 60 * 60 * 1000);
+
+      if (pageNum === 1) {
+        setArticles(articleData);
+      } else {
+        setArticles(prev => [...prev, ...articleData]);
       }
 
-      if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%`);
-      }
-
-      // Apply sorting
-      if (sortOrder === 'newest') {
-        query = query.order('created_at', { ascending: false });
-      } else if (sortOrder === 'oldest') {
-        query = query.order('created_at', { ascending: true });
-      } else if (sortOrder === 'title') {
-        query = query.order('title', { ascending: true });
-      }
-
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setArticles(data || []);
+      setHasMore(articleData.length === limit);
     } catch (error) {
       console.error('Error fetching articles:', error);
     } finally {
@@ -88,71 +110,112 @@ const ArticleGrid = ({ featured = false, limit, categoryId }: ArticleGridProps) 
     }
   };
 
-  if (loading) {
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchArticles(nextPage);
+  };
+
+  const getReadTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const wordCount = content ? content.split(' ').length : 0;
+    return Math.ceil(wordCount / wordsPerMinute);
+  };
+
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minutes ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hours ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} days ago`;
+    }
+  };
+
+  // Show cached content immediately if available
+  if ((loading && articles.length === 0) || isPreloading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="bg-gray-200 aspect-video rounded-lg mb-4"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
+      <section className="py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mx-auto"></div>
           </div>
-        ))}
-      </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-48 bg-gray-200 rounded-t-xl"></div>
+                <div className="p-6 space-y-4">
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-6 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {!featured && (
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search articles..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+    <section className="py-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Latest Stories</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Stay updated with the latest technology news, in-depth reviews, and expert insights
+          </p>
+        </div>
+
+        {articles.length === 0 && !loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No articles found. Check back later for new content!
+            </p>
           </div>
-          <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="title">Title A-Z</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      
-      {articles.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No articles found.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.map((article) => (
-            <ArticleCard
-              key={article.id}
-              id={article.id}
-              title={article.title}
-              excerpt={article.excerpt}
-              image={article.featured_image_url}
-              slug={article.slug}
-              date={article.created_at}
-              readTime={article.reading_time}
-              category={article.categories?.name}
-              categorySlug={article.categories?.slug}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {articles.map((article, index) => (
+                <ArticleCard
+                  key={article.id}
+                  title={article.title}
+                  excerpt={article.excerpt || ''}
+                  category={article.categories?.name || 'Uncategorized'}
+                  readTime={`${getReadTime(article.excerpt || '')} min read`}
+                  publishedAt={getRelativeTime(article.created_at)}
+                  imageUrl={article.featured_image_url || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80'}
+                  type={article.article_type === 'product_review' ? 'review' : article.article_type === 'news' ? 'news' : 'blog'}
+                  articleId={article.id}
+                  slug={article.slug}
+                />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div className="text-center mt-12">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-200 hover:scale-105 transform disabled:opacity-50"
+                >
+                  {loading ? 'Loading...' : 'Load More Articles'}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
   );
 };
 

@@ -60,7 +60,6 @@ export const useSiteSettings = () => {
             const newData = payload.new as any;
             const typedSettings: SiteSettings = {
               ...newData,
-              hero_layout: newData.hero_layout || 'default',
               custom_values: Array.isArray(newData.custom_values) ? newData.custom_values : [],
               custom_team_members: Array.isArray(newData.custom_team_members) ? newData.custom_team_members : [],
             };
