@@ -94,7 +94,7 @@ const ArticleGrid = () => {
                 title={article.title}
                 excerpt={article.excerpt || ''}
                 category={article.categories?.name || 'Uncategorized'}
-                readTime={5}
+                readTime="5 min read"
                 imageUrl={article.featured_image_url || ''}
                 slug={article.slug}
                 author={article.author}
