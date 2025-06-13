@@ -59,7 +59,7 @@ export const useSiteSettings = () => {
           hero_title: data.hero_title || '',
           hero_subtitle: data.hero_subtitle || '',
           hero_image_url: data.hero_image_url || '',
-          hero_layout: 'default', // Use default since it doesn't exist in DB yet
+          hero_layout: data.hero_layout || 'default',
           primary_color: data.primary_color || '#000000',
           secondary_color: data.secondary_color || '#ffffff',
           meta_title: data.meta_title || '',
