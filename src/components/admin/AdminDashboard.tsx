@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Users, MessageCircle, Eye, Database, BarChart, Table } from 'lucide-react';
+import { FileText, Users, MessageCircle, Eye, Database, BarChart, Table, Code } from 'lucide-react';
 
 interface DashboardStats {
   totalArticles: number;
@@ -156,9 +156,9 @@ const AdminDashboard = () => {
             >
               <div className="font-medium flex items-center gap-2">
                 <Table className="h-4 w-4" />
-                Database Tables
+                Database Tables & SQL Scripts
               </div>
-              <div className="text-sm text-muted-foreground">View table definitions and creation scripts</div>
+              <div className="text-sm text-muted-foreground">View table definitions and creation scripts used in this app</div>
             </a>
             <a
               href="/admin/usage"
@@ -174,24 +174,47 @@ const AdminDashboard = () => {
               href="/admin/settings"
               className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <div className="font-medium">Site Settings</div>
-              <div className="text-sm text-muted-foreground">Customize your site appearance and SEO</div>
+              <div className="font-medium flex items-center gap-2">
+                <Code className="h-4 w-4" />
+                Site Settings & Hero Layouts
+              </div>
+              <div className="text-sm text-muted-foreground">Customize site appearance, SEO, and choose hero section layout</div>
             </a>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Database Overview</CardTitle>
             <CardDescription>
-              Latest updates to your blog
+              SQL tables and scripts used in this application
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">
-                No recent activity to show. Start by creating your first article!
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                <span className="font-mono text-sm">articles</span>
+                <span className="text-xs text-muted-foreground">Blog posts & content</span>
               </div>
+              <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                <span className="font-mono text-sm">categories</span>
+                <span className="text-xs text-muted-foreground">Content organization</span>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-purple-50 rounded">
+                <span className="font-mono text-sm">profiles</span>
+                <span className="text-xs text-muted-foreground">User management</span>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-orange-50 rounded">
+                <span className="font-mono text-sm">site_settings</span>
+                <span className="text-xs text-muted-foreground">Configuration & layouts</span>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <span className="font-mono text-sm">reviews</span>
+                <span className="text-xs text-muted-foreground">User feedback</span>
+              </div>
+              <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+                <a href="/admin/database-tables">View All SQL Scripts</a>
+              </Button>
             </div>
           </CardContent>
         </Card>

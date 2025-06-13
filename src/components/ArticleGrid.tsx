@@ -30,19 +30,22 @@ const ArticleGrid = () => {
             categories(name),
             profiles(full_name)
           `)
-          .eq('status', 'published')
+          .eq('published', true)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        // Filter out articles without proper data
-        const validArticles = data?.filter(article => 
+        // Transform data to match expected interface
+        const transformedArticles = data?.map(article => ({
+          ...article,
+          author: article.profiles?.full_name || 'Unknown Author'
+        })).filter(article => 
           article && 
           article.title && 
           article.slug
         ) || [];
 
-        setArticles(validArticles);
+        setArticles(transformedArticles);
       } catch (error) {
         console.error('Error fetching articles:', error);
       } finally {
@@ -85,7 +88,7 @@ const ArticleGrid = () => {
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+              <ArticleCard key={article.id} articleId={article.id} />
             ))}
           </div>
         )}

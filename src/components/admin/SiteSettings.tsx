@@ -1,14 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ImageUpload from './ImageUpload';
-import ValuesTeamManager from './ValuesTeamManager';
 
 interface SiteSettings {
   id: string;
@@ -17,6 +17,7 @@ interface SiteSettings {
   hero_title: string;
   hero_subtitle: string;
   hero_image_url: string | null;
+  hero_layout: string;
   primary_color: string;
   secondary_color: string;
   meta_title: string;
@@ -54,7 +55,16 @@ const SiteSettings = () => {
         .single();
 
       if (error) throw error;
-      setFormData(data);
+      
+      // Ensure proper type conversion
+      const settingsData: Partial<SiteSettings> = {
+        ...data,
+        hero_layout: data.hero_layout || 'default',
+        custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
+        custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
+      };
+      
+      setFormData(settingsData);
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Failed to load settings');
@@ -63,19 +73,11 @@ const SiteSettings = () => {
     }
   };
 
-  const handleInputChange = (field: keyof SiteSettings, value: string) => {
+  const handleInputChange = (field: keyof SiteSettings, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleImageUpload = (field: keyof SiteSettings) => (url: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: url
-    }));
-    toast.success('Image uploaded successfully!');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,10 +180,27 @@ const SiteSettings = () => {
               <CardHeader>
                 <CardTitle>Hero Section</CardTitle>
                 <CardDescription>
-                  Configure your homepage hero section.
+                  Configure your homepage hero section layout and content.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="hero_layout">Hero Section Layout</Label>
+                  <Select
+                    value={formData?.hero_layout || 'default'}
+                    onValueChange={(value) => handleInputChange('hero_layout', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select hero layout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default - Side by Side</SelectItem>
+                      <SelectItem value="banner">Banner - Full Width Background</SelectItem>
+                      <SelectItem value="minimal">Minimal - Centered Content</SelectItem>
+                      <SelectItem value="split">Split - Half Content, Half Image</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="hero_title">Hero Title</Label>
                   <Input
@@ -201,14 +220,19 @@ const SiteSettings = () => {
                     rows={3}
                   />
                 </div>
-                <div>
-                  <Label>Hero Background Image</Label>
-                  <ImageUpload onUpload={handleImageUpload('hero_image_url')} />
+                <div className="space-y-2">
+                  <Label htmlFor="hero_image_url">Hero Background Image URL</Label>
+                  <Input
+                    id="hero_image_url"
+                    value={formData?.hero_image_url || ''}
+                    onChange={(e) => handleInputChange('hero_image_url', e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                  />
                   {formData?.hero_image_url && (
                     <div className="mt-2">
                       <img
                         src={formData.hero_image_url}
-                        alt="Hero background"
+                        alt="Hero background preview"
                         className="w-full h-40 object-cover rounded-lg"
                       />
                     </div>
@@ -223,31 +247,41 @@ const SiteSettings = () => {
               <CardHeader>
                 <CardTitle>Branding</CardTitle>
                 <CardDescription>
-                  Upload your logo and favicon.
+                  Configure your brand assets.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <Label>Logo</Label>
-                  <ImageUpload onUpload={handleImageUpload('logo_url')} />
+                <div className="space-y-2">
+                  <Label htmlFor="logo_url">Logo URL</Label>
+                  <Input
+                    id="logo_url"
+                    value={formData?.logo_url || ''}
+                    onChange={(e) => handleInputChange('logo_url', e.target.value)}
+                    placeholder="https://example.com/logo.png"
+                  />
                   {formData?.logo_url && (
                     <div className="mt-2">
                       <img
                         src={formData.logo_url}
-                        alt="Logo"
+                        alt="Logo preview"
                         className="h-20 object-contain"
                       />
                     </div>
                   )}
                 </div>
-                <div>
-                  <Label>Favicon</Label>
-                  <ImageUpload onUpload={handleImageUpload('favicon_url')} />
+                <div className="space-y-2">
+                  <Label htmlFor="favicon_url">Favicon URL</Label>
+                  <Input
+                    id="favicon_url"
+                    value={formData?.favicon_url || ''}
+                    onChange={(e) => handleInputChange('favicon_url', e.target.value)}
+                    placeholder="https://example.com/favicon.ico"
+                  />
                   {formData?.favicon_url && (
                     <div className="mt-2">
                       <img
                         src={formData.favicon_url}
-                        alt="Favicon"
+                        alt="Favicon preview"
                         className="h-8 w-8 object-contain"
                       />
                     </div>
@@ -352,7 +386,7 @@ const SiteSettings = () => {
               <CardHeader>
                 <CardTitle>About Page Content</CardTitle>
                 <CardDescription>
-                  Configure your about page content and team.
+                  Configure your about page content.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -386,17 +420,6 @@ const SiteSettings = () => {
                     rows={3}
                   />
                 </div>
-
-                <ValuesTeamManager
-                  values={formData?.custom_values || []}
-                  teamMembers={formData?.custom_team_members || []}
-                  showDefaultValues={formData?.show_default_values ?? true}
-                  showDefaultTeam={formData?.show_default_team ?? true}
-                  onValuesChange={(values) => handleInputChange('custom_values', values)}
-                  onTeamChange={(members) => handleInputChange('custom_team_members', members)}
-                  onShowDefaultValuesChange={(show) => handleInputChange('show_default_values', show)}
-                  onShowDefaultTeamChange={(show) => handleInputChange('show_default_team', show)}
-                />
               </CardContent>
             </Card>
           </TabsContent>
