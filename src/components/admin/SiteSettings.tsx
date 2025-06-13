@@ -215,7 +215,7 @@ const SiteSettings = () => {
                 </div>
                 <div>
                   <Label>Hero Background Image</Label>
-                  <ImageUpload onUpload={handleImageUpload('hero_image_url')} />
+                  <ImageUpload onImageUpload={handleImageUpload('hero_image_url')} />
                   {formData?.hero_image_url && (
                     <div className="mt-2">
                       <img
@@ -285,7 +285,7 @@ const SiteSettings = () => {
                 <CardContent className="space-y-6">
                   <div>
                     <Label>Logo</Label>
-                    <ImageUpload onUpload={handleImageUpload('logo_url')} />
+                    <ImageUpload onImageUpload={handleImageUpload('logo_url')} />
                     {formData?.logo_url && (
                       <div className="mt-2">
                         <img
@@ -298,7 +298,7 @@ const SiteSettings = () => {
                   </div>
                   <div>
                     <Label>Favicon</Label>
-                    <ImageUpload onUpload={handleImageUpload('favicon_url')} />
+                    <ImageUpload onImageUpload={handleImageUpload('favicon_url')} />
                     {formData?.favicon_url && (
                       <div className="mt-2">
                         <img

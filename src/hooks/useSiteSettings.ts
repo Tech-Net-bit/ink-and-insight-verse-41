@@ -9,7 +9,7 @@ interface SiteSettings {
   hero_title: string;
   hero_subtitle: string;
   hero_image_url: string | null;
-  hero_layout: string;
+  hero_layout?: string;
   primary_color: string;
   secondary_color: string;
   meta_title: string;
@@ -60,6 +60,7 @@ export const useSiteSettings = () => {
             const newData = payload.new as any;
             const typedSettings: SiteSettings = {
               ...newData,
+              hero_layout: newData.hero_layout || 'default',
               custom_values: Array.isArray(newData.custom_values) ? newData.custom_values : [],
               custom_team_members: Array.isArray(newData.custom_team_members) ? newData.custom_team_members : [],
             };

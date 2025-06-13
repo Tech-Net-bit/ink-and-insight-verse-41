@@ -24,7 +24,6 @@ const UserManagement = lazy(() => import('./components/admin/UserManagement'));
 const SiteSettings = lazy(() => import('./components/admin/SiteSettings'));
 const DatabaseManager = lazy(() => import('./components/admin/DatabaseManager'));
 const DatabaseTables = lazy(() => import('./components/admin/DatabaseTables'));
-const SqlQueryManager = lazy(() => import('./components/admin/SqlQueryManager'));
 const UsageLimits = lazy(() => import('./components/admin/UsageLimits'));
 
 const queryClient = new QueryClient();
@@ -63,7 +62,6 @@ function App() {
               <Route path="settings" element={<LazyRoute><SiteSettings /></LazyRoute>} />
               <Route path="database" element={<LazyRoute><DatabaseManager /></LazyRoute>} />
               <Route path="database-tables" element={<LazyRoute><DatabaseTables /></LazyRoute>} />
-              <Route path="sql-queries" element={<LazyRoute><SqlQueryManager /></LazyRoute>} />
               <Route path="usage" element={<LazyRoute><UsageLimits /></LazyRoute>} />
             </Route>
             
