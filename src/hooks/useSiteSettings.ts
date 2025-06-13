@@ -21,6 +21,13 @@ interface SiteSettings {
   social_facebook?: string;
   social_linkedin?: string;
   social_instagram?: string;
+  about_content?: string;
+  about_mission?: string;
+  about_vision?: string;
+  show_default_values?: boolean;
+  custom_values?: any[];
+  show_default_team?: boolean;
+  custom_team_members?: any[];
 }
 
 export const useSiteSettings = () => {
@@ -64,6 +71,13 @@ export const useSiteSettings = () => {
           social_facebook: data.social_facebook || '',
           social_linkedin: data.social_linkedin || '',
           social_instagram: data.social_instagram || '',
+          about_content: data.about_content || '',
+          about_mission: data.about_mission || '',
+          about_vision: data.about_vision || '',
+          show_default_values: data.show_default_values ?? true,
+          custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
+          show_default_team: data.show_default_team ?? true,
+          custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
         });
       } else {
         // Set default settings if none exist
@@ -85,6 +99,13 @@ export const useSiteSettings = () => {
           social_facebook: '',
           social_linkedin: '',
           social_instagram: '',
+          about_content: '',
+          about_mission: '',
+          about_vision: '',
+          show_default_values: true,
+          custom_values: [],
+          show_default_team: true,
+          custom_team_members: [],
         });
       }
     } catch (error) {
