@@ -9,6 +9,7 @@ interface SiteSettings {
   hero_title: string;
   hero_subtitle: string;
   hero_image_url: string | null;
+  hero_layout: string;
   primary_color: string;
   secondary_color: string;
   meta_title: string;
@@ -107,6 +108,7 @@ export const useSiteSettings = () => {
       // Properly type and handle the data
       const typedSettings: SiteSettings = {
         ...data,
+        hero_layout: data.hero_layout || 'default',
         custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
         custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
       };
@@ -119,5 +121,25 @@ export const useSiteSettings = () => {
     }
   };
 
-  return { settings, loading, refetch: fetchSiteSettings };
+  const updateSettings = async (newSettings: Partial<SiteSettings>) => {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .update(newSettings)
+        .eq('id', settings?.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSettings(prev => prev ? { ...prev, ...newSettings } : null);
+      
+      // Dispatch custom event for real-time updates
+      window.dispatchEvent(new Event('site-settings-updated'));
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      throw error;
+    }
+  };
+
+  return { settings, loading, refetch: fetchSiteSettings, updateSettings };
 };

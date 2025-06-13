@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Users, MessageCircle, Eye, Database, BarChart } from 'lucide-react';
+import { FileText, Users, MessageCircle, Eye, Database, BarChart, Table } from 'lucide-react';
 
 interface DashboardStats {
   totalArticles: number;
@@ -149,6 +149,16 @@ const AdminDashboard = () => {
                 Database Manager
               </div>
               <div className="text-sm text-muted-foreground">Execute SQL queries and manage data</div>
+            </a>
+            <a
+              href="/admin/database-tables"
+              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <div className="font-medium flex items-center gap-2">
+                <Table className="h-4 w-4" />
+                Database Tables
+              </div>
+              <div className="text-sm text-muted-foreground">View table definitions and creation scripts</div>
             </a>
             <a
               href="/admin/usage"
