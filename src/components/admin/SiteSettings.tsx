@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
@@ -47,10 +46,6 @@ const SiteSettings = () => {
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleImageUpload = (field: string) => (url: string) => {
-    handleInputChange(field, url);
   };
 
   if (loading) {
@@ -177,23 +172,9 @@ const SiteSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Hero Section</CardTitle>
-                <CardDescription>Configure your homepage hero section layout and content</CardDescription>
+                <CardDescription>Configure your homepage hero section</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="hero_layout">Hero Layout</Label>
-                  <Select value={formData?.hero_layout || 'default'} onValueChange={(value) => handleInputChange('hero_layout', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select hero layout" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Default - Split Content & Slider</SelectItem>
-                      <SelectItem value="banner">Banner - Full Screen Poster</SelectItem>
-                      <SelectItem value="minimal">Minimal - Centered Content</SelectItem>
-                      <SelectItem value="split">Split - Text & Image Halves</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div>
                   <Label htmlFor="hero_title">Hero Title</Label>
                   <Input
@@ -215,7 +196,10 @@ const SiteSettings = () => {
                 </div>
                 <div>
                   <Label>Hero Background Image</Label>
-                  <ImageUpload onUpload={handleImageUpload('hero_image_url')} />
+                  <ImageUpload
+                    onUpload={(url) => handleInputChange('hero_image_url', url)}
+                    className="mt-2"
+                  />
                   {formData?.hero_image_url && (
                     <div className="mt-2">
                       <img
@@ -285,7 +269,10 @@ const SiteSettings = () => {
                 <CardContent className="space-y-6">
                   <div>
                     <Label>Logo</Label>
-                    <ImageUpload onUpload={handleImageUpload('logo_url')} />
+                    <ImageUpload
+                      onUpload={(url) => handleInputChange('logo_url', url)}
+                      className="mt-2"
+                    />
                     {formData?.logo_url && (
                       <div className="mt-2">
                         <img
@@ -298,7 +285,10 @@ const SiteSettings = () => {
                   </div>
                   <div>
                     <Label>Favicon</Label>
-                    <ImageUpload onUpload={handleImageUpload('favicon_url')} />
+                    <ImageUpload
+                      onUpload={(url) => handleInputChange('favicon_url', url)}
+                      className="mt-2"
+                    />
                     {formData?.favicon_url && (
                       <div className="mt-2">
                         <img

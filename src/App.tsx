@@ -1,78 +1,104 @@
 
-import { Toaster } from '@/components/ui/toaster';
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { useDataPreloader } from "@/hooks/useDataPreloader";
+import { useEffect } from "react";
+import LazyRoute from "@/components/LazyRoute";
+import PerformanceMonitor from "@/components/PerformanceMonitor";
 
 // Lazy load components for better performance
-const Index = lazy(() => import('./pages/Index'));
-const About = lazy(() => import('./pages/About'));
-const Articles = lazy(() => import('./pages/Articles'));
-const ArticleDetail = lazy(() => import('./pages/ArticleDetail'));
-const Categories = lazy(() => import('./pages/Categories'));
-const Auth = lazy(() => import('./pages/Auth'));
-const Admin = lazy(() => import('./pages/Admin'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+const Index = () => import("./pages/Index");
+const Auth = () => import("./pages/Auth");
+const Admin = () => import("./pages/Admin");
+const NotFound = () => import("./pages/NotFound");
+const Articles = () => import("./pages/Articles");
+const ArticleDetail = () => import("./pages/ArticleDetail");
+const Categories = () => import("./pages/Categories");
+const About = () => import("./pages/About");
+const AdminLayout = () => import("./components/admin/AdminLayout");
+const ArticleManagement = () => import("./components/admin/ArticleManagement");
+const CategoryManagement = () => import("./components/admin/CategoryManagement");
+const UserManagement = () => import("./components/admin/UserManagement");
+const SiteSettings = () => import("./components/admin/SiteSettings");
+const DatabaseManager = () => import("./components/admin/DatabaseManager");
+const UsageLimits = () => import("./components/admin/UsageLimits");
 
-// Admin components
-const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
-const ArticleManagement = lazy(() => import('./components/admin/ArticleManagement'));
-const CategoryManagement = lazy(() => import('./components/admin/CategoryManagement'));
-const UserManagement = lazy(() => import('./components/admin/UserManagement'));
-const SiteSettings = lazy(() => import('./components/admin/SiteSettings'));
-const DatabaseManager = lazy(() => import('./components/admin/DatabaseManager'));
-const DatabaseTables = lazy(() => import('./components/admin/DatabaseTables'));
-const SqlQueryManager = lazy(() => import('./components/admin/SqlQueryManager'));
-const UsageLimits = lazy(() => import('./components/admin/UsageLimits'));
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const queryClient = new QueryClient();
+const AppContent = () => {
+  // Preload critical data
+  useDataPreloader({
+    preloadFeatured: true,
+    preloadCategories: true,
+    preloadSettings: true,
+  });
 
-const LazyRoute = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-    </div>
-  }>
-    {children}
-  </Suspense>
-);
+  // Register service worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered: ', registration);
+        })
+        .catch((registrationError) => {
+          console.log('SW registration failed: ', registrationError);
+        });
+    }
+  }, []);
 
-function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
+      <PerformanceMonitor />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LazyRoute component={Index} />} />
+          <Route path="/auth" element={<LazyRoute component={Auth} />} />
+          <Route path="/articles" element={<LazyRoute component={Articles} />} />
+          <Route path="/article/:slug" element={<LazyRoute component={ArticleDetail} />} />
+          <Route path="/categories" element={<LazyRoute component={Categories} />} />
+          <Route path="/about" element={<LazyRoute component={About} />} />
+          <Route path="/admin" element={<LazyRoute component={Admin} />} />
+          
+          {/* Admin routes with nested routing */}
+          <Route path="/admin/*" element={<LazyRoute component={AdminLayout} />}>
+            <Route path="articles" element={<LazyRoute component={ArticleManagement} />} />
+            <Route path="categories" element={<LazyRoute component={CategoryManagement} />} />
+            <Route path="users" element={<LazyRoute component={UserManagement} />} />
+            <Route path="settings" element={<LazyRoute component={SiteSettings} />} />
+            <Route path="database" element={<LazyRoute component={DatabaseManager} />} />
+            <Route path="limits" element={<LazyRoute component={UsageLimits} />} />
+          </Route>
+          
+          <Route path="*" element={<LazyRoute component={NotFound} />} />
+        </Routes>
+      </BrowserRouter>
+    </>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LazyRoute><Index /></LazyRoute>} />
-            <Route path="/about" element={<LazyRoute><About /></LazyRoute>} />
-            <Route path="/articles" element={<LazyRoute><Articles /></LazyRoute>} />
-            <Route path="/article/:slug" element={<LazyRoute><ArticleDetail /></LazyRoute>} />
-            <Route path="/categories" element={<LazyRoute><Categories /></LazyRoute>} />
-            <Route path="/auth" element={<LazyRoute><Auth /></LazyRoute>} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={<LazyRoute><Admin /></LazyRoute>}>
-              <Route index element={<LazyRoute><AdminDashboard /></LazyRoute>} />
-              <Route path="articles" element={<LazyRoute><ArticleManagement /></LazyRoute>} />
-              <Route path="categories" element={<LazyRoute><CategoryManagement /></LazyRoute>} />
-              <Route path="users" element={<LazyRoute><UserManagement /></LazyRoute>} />
-              <Route path="settings" element={<LazyRoute><SiteSettings /></LazyRoute>} />
-              <Route path="database" element={<LazyRoute><DatabaseManager /></LazyRoute>} />
-              <Route path="database-tables" element={<LazyRoute><DatabaseTables /></LazyRoute>} />
-              <Route path="sql-queries" element={<LazyRoute><SqlQueryManager /></LazyRoute>} />
-              <Route path="usage" element={<LazyRoute><UsageLimits /></LazyRoute>} />
-            </Route>
-            
-            <Route path="*" element={<LazyRoute><NotFound /></LazyRoute>} />
-          </Routes>
-        </BrowserRouter>
+        <AppContent />
       </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
+    </AuthProvider>
+  </QueryClientProvider>
+);
 
 export default App;
