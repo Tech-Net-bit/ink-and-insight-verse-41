@@ -1,139 +1,146 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface SiteSettings {
-  site_name?: string;
-  site_description?: string;
-  hero_title?: string;
-  hero_subtitle?: string;
-  hero_image_url?: string;
-  hero_layout?: string;
-  primary_color?: string;
-  secondary_color?: string;
-  meta_title?: string;
-  meta_description?: string;
-  meta_keywords?: string;
-  favicon_url?: string;
-  logo_url?: string;
-  social_twitter?: string;
-  social_facebook?: string;
-  social_linkedin?: string;
-  social_instagram?: string;
+  id: string;
+  site_name: string;
+  site_description: string;
+  hero_title: string;
+  hero_subtitle: string;
+  hero_image_url: string | null;
+  hero_layout: string;
+  primary_color: string;
+  secondary_color: string;
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  favicon_url: string;
+  logo_url: string;
+  social_twitter: string;
+  social_facebook: string;
+  social_linkedin: string;
+  social_instagram: string;
+  about_content?: string;
+  about_mission?: string;
+  about_vision?: string;
+  custom_values?: any[];
+  custom_team_members?: any[];
+  show_default_values?: boolean;
+  show_default_team?: boolean;
 }
 
 export const useSiteSettings = () => {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
-  const fetchSettings = async () => {
+  useEffect(() => {
+    let channel: any = null;
+
+    const setupSubscription = async () => {
+      // Initial fetch
+      await fetchSiteSettings();
+
+      // Create a unique channel name to avoid conflicts
+      const channelName = `site-settings-${Date.now()}-${Math.random()}`;
+      
+      // Listen for real-time updates to site settings
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'site_settings'
+          },
+          (payload) => {
+            console.log('Site settings updated:', payload);
+            // Properly type the payload data
+            const newData = payload.new as any;
+            const typedSettings: SiteSettings = {
+              ...newData,
+              hero_layout: newData.hero_layout || 'default',
+              custom_values: Array.isArray(newData.custom_values) ? newData.custom_values : [],
+              custom_team_members: Array.isArray(newData.custom_team_members) ? newData.custom_team_members : [],
+            };
+            setSettings(typedSettings);
+          }
+        )
+        .subscribe();
+
+      // Listen for custom events from the admin panel
+      const handleSettingsUpdate = () => {
+        fetchSiteSettings();
+      };
+
+      window.addEventListener('site-settings-updated', handleSettingsUpdate);
+
+      // Return cleanup function
+      return () => {
+        window.removeEventListener('site-settings-updated', handleSettingsUpdate);
+      };
+    };
+
+    const cleanup = setupSubscription();
+
+    return () => {
+      // Clean up channel subscription
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      // Clean up event listeners
+      cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+    };
+  }, []); // Empty dependency array to run only once
+
+  const fetchSiteSettings = async () => {
     try {
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching settings:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load site settings',
-          variant: 'destructive',
-        });
+      if (error) {
+        console.error('Error fetching site settings:', error);
         return;
       }
 
-      if (data) {
-        setSettings({
-          site_name: data.site_name || '',
-          site_description: data.site_description || '',
-          hero_title: data.hero_title || '',
-          hero_subtitle: data.hero_subtitle || '',
-          hero_image_url: data.hero_image_url || '',
-          hero_layout: data.hero_layout || 'default',
-          primary_color: data.primary_color || '#000000',
-          secondary_color: data.secondary_color || '#ffffff',
-          meta_title: data.meta_title || '',
-          meta_description: data.meta_description || '',
-          meta_keywords: data.meta_keywords || '',
-          favicon_url: data.favicon_url || '',
-          logo_url: data.logo_url || '',
-          social_twitter: data.social_twitter || '',
-          social_facebook: data.social_facebook || '',
-          social_linkedin: data.social_linkedin || '',
-          social_instagram: data.social_instagram || '',
-        });
-      } else {
-        // Set default settings if none exist
-        setSettings({
-          site_name: 'My Site',
-          site_description: 'Welcome to my site',
-          hero_title: 'Welcome',
-          hero_subtitle: 'This is the hero section',
-          hero_image_url: '',
-          hero_layout: 'default',
-          primary_color: '#000000',
-          secondary_color: '#ffffff',
-          meta_title: '',
-          meta_description: '',
-          meta_keywords: '',
-          favicon_url: '',
-          logo_url: '',
-          social_twitter: '',
-          social_facebook: '',
-          social_linkedin: '',
-          social_instagram: '',
-        });
-      }
+      // Properly type and handle the data
+      const typedSettings: SiteSettings = {
+        ...data,
+        hero_layout: data.hero_layout || 'default',
+        custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
+        custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
+      };
+
+      setSettings(typedSettings);
     } catch (error) {
-      console.error('Error in fetchSettings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load site settings',
-        variant: 'destructive',
-      });
+      console.error('Error fetching site settings:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateSettings = async (newSettings: SiteSettings) => {
+  const updateSettings = async (newSettings: Partial<SiteSettings>) => {
     try {
       const { error } = await supabase
         .from('site_settings')
-        .upsert(newSettings, { onConflict: 'id' });
+        .update(newSettings)
+        .eq('id', settings?.id);
 
-      if (error) {
-        console.error('Error updating settings:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      setSettings(newSettings);
-      toast({
-        title: 'Success',
-        description: 'Settings updated successfully',
-      });
+      // Update local state
+      setSettings(prev => prev ? { ...prev, ...newSettings } : null);
+      
+      // Dispatch custom event for real-time updates
+      window.dispatchEvent(new Event('site-settings-updated'));
     } catch (error) {
-      console.error('Error in updateSettings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update settings',
-        variant: 'destructive',
-      });
+      console.error('Error updating settings:', error);
       throw error;
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  return {
-    settings,
-    loading,
-    updateSettings,
-    refetch: fetchSettings,
-  };
+  return { settings, loading, refetch: fetchSiteSettings, updateSettings };
 };
