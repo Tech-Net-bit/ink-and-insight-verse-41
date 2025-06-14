@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,7 +38,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const AppContent = () => {
+const AppContent: React.FC = () => {
   // Register service worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -52,7 +53,7 @@ const AppContent = () => {
   }, []);
 
   return (
-    <>
+    <React.Fragment>
       <PerformanceMonitor />
       <BrowserRouter>
         <Routes>
@@ -77,20 +78,22 @@ const AppContent = () => {
           <Route path="*" element={<LazyRoute component={NotFound} />} />
         </Routes>
       </BrowserRouter>
-    </>
+    </React.Fragment>
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+const App: React.FC = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <AppContent />
+        <TooltipProvider>
+          <AppContent />
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
-import ImageUpload from './ImageUpload';
 import ValuesTeamManager from './ValuesTeamManager';
 
 const SiteSettings = () => {
@@ -45,6 +45,27 @@ const SiteSettings = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleImageUpload = (field: string) => {
+    // Create a simple file input handler
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // For demo purposes, create a placeholder URL
+        // In a real app, you'd upload to your storage service
+        const url = URL.createObjectURL(file);
+        handleInputChange(field, url);
+        toast({
+          title: 'Image uploaded',
+          description: 'Image uploaded successfully (demo mode)',
+        });
+      }
+    };
+    input.click();
   };
 
   if (loading) {
@@ -195,10 +216,14 @@ const SiteSettings = () => {
                 </div>
                 <div>
                   <Label>Hero Background Image</Label>
-                  <ImageUpload
-                    onUpload={(url: string) => handleInputChange('hero_image_url', url)}
-                    className="mt-2"
-                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => handleImageUpload('hero_image_url')}
+                    className="mt-2 w-full"
+                  >
+                    Upload Hero Image
+                  </Button>
                   {formData?.hero_image_url && (
                     <div className="mt-2">
                       <img
@@ -268,10 +293,14 @@ const SiteSettings = () => {
                 <CardContent className="space-y-6">
                   <div>
                     <Label>Logo</Label>
-                    <ImageUpload
-                      onUpload={(url: string) => handleInputChange('logo_url', url)}
-                      className="mt-2"
-                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => handleImageUpload('logo_url')}
+                      className="mt-2 w-full"
+                    >
+                      Upload Logo
+                    </Button>
                     {formData?.logo_url && (
                       <div className="mt-2">
                         <img
@@ -284,10 +313,14 @@ const SiteSettings = () => {
                   </div>
                   <div>
                     <Label>Favicon</Label>
-                    <ImageUpload
-                      onUpload={(url: string) => handleInputChange('favicon_url', url)}
-                      className="mt-2"
-                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => handleImageUpload('favicon_url')}
+                      className="mt-2 w-full"
+                    >
+                      Upload Favicon
+                    </Button>
                     {formData?.favicon_url && (
                       <div className="mt-2">
                         <img
