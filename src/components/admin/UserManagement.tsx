@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, ShieldCheck } from 'lucide-react';
+import { Shield, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface User {
@@ -21,6 +21,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,73 +30,59 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       console.log('Fetching users from profiles table...');
       
-      // First check if the profiles table exists and has data
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('Profiles query result:', { profiles, profilesError });
+      console.log('Profiles query result:', { profiles, error });
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        
-        // If profiles table doesn't exist or has issues, try to get auth users
-        // Note: This won't work in production due to RLS, but helps with debugging
-        try {
-          const { data: authData, error: authError } = await supabase.auth.getUser();
-          console.log('Current auth user:', { authData, authError });
-          
-          if (authData?.user) {
-            // Create a mock user based on current auth user
-            setUsers([{
-              id: authData.user.id,
-              email: authData.user.email || 'Unknown',
-              full_name: authData.user.user_metadata?.full_name || 'Unknown User',
-              role: 'user',
-              created_at: authData.user.created_at || new Date().toISOString()
-            }]);
-          } else {
-            setUsers([]);
-            toast({
-              title: 'No Users Found',
-              description: 'No user profiles found. Make sure users have signed up and profiles are created.',
-              variant: 'destructive',
-            });
-          }
-        } catch (authError) {
-          console.error('Auth error:', authError);
-          setUsers([]);
-        }
-        
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch user profiles: ' + error.message,
+          variant: 'destructive',
+        });
         return;
       }
 
       if (!profiles || profiles.length === 0) {
         console.log('No profiles found in database');
-        setUsers([]);
         toast({
           title: 'No Users Found',
-          description: 'No user profiles found. Users need to sign up first.',
+          description: 'No user profiles found. The database may be empty.',
         });
+        setUsers([]);
         return;
       }
 
       console.log(`Found ${profiles.length} profiles`);
-      setUsers(profiles || []);
+      setUsers(profiles);
       
     } catch (error) {
       console.error('Unexpected error fetching users:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch users',
+        description: 'An unexpected error occurred while fetching users',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchUsers();
+    setRefreshing(false);
+    toast({
+      title: 'Success',
+      description: 'User list refreshed successfully',
+    });
   };
 
   const updateUserRole = async (userId: string, newRole: 'admin' | 'user') => {
@@ -129,7 +116,7 @@ const UserManagement = () => {
 
   const filteredUsers = users.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -141,12 +128,18 @@ const UserManagement = () => {
 
       <div className="flex items-center space-x-2">
         <Input
-          placeholder="Search users..."
+          placeholder="Search users by email or name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <Button onClick={fetchUsers} variant="outline">
+        <Button 
+          onClick={handleRefresh} 
+          variant="outline"
+          disabled={refreshing}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -166,12 +159,22 @@ const UserManagement = () => {
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-muted-foreground text-lg">
-              No users found. {users.length === 0 ? 'Users need to sign up first.' : 'Try adjusting your search.'}
+              {users.length === 0 
+                ? 'No users found. The profiles table appears to be empty.' 
+                : 'No users match your search criteria.'}
             </p>
+            {users.length === 0 && (
+              <Button onClick={handleRefresh} className="mt-4">
+                Try Refreshing
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredUsers.length} of {users.length} users
+          </div>
           {filteredUsers.map((user) => (
             <Card key={user.id}>
               <CardHeader>
