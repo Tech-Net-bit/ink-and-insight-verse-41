@@ -1,12 +1,11 @@
 
-import React from 'react';
+import { StrictMode, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { useEffect } from "react";
 import LazyRoute from "@/components/LazyRoute";
 
 // Lazy load components for better performance
@@ -37,7 +36,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const AppContent: React.FC = () => {
+const AppContent = () => {
   // Register service worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -78,17 +77,19 @@ const AppContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <AppContent />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <AppContent />
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </StrictMode>
   );
 };
 
