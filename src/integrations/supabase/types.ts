@@ -9,84 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      articles: {
-        Row: {
-          article_type: Database["public"]["Enums"]["article_type"] | null
-          author_id: string
-          category_id: string | null
-          content: string
-          created_at: string | null
-          excerpt: string | null
-          featured: boolean | null
-          featured_image_url: string | null
-          id: string
-          meta_description: string | null
-          meta_keywords: string | null
-          meta_title: string | null
-          og_image_url: string | null
-          published: boolean | null
-          reading_time: number | null
-          slug: string
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          article_type?: Database["public"]["Enums"]["article_type"] | null
-          author_id: string
-          category_id?: string | null
-          content: string
-          created_at?: string | null
-          excerpt?: string | null
-          featured?: boolean | null
-          featured_image_url?: string | null
-          id?: string
-          meta_description?: string | null
-          meta_keywords?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
-          published?: boolean | null
-          reading_time?: number | null
-          slug: string
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          article_type?: Database["public"]["Enums"]["article_type"] | null
-          author_id?: string
-          category_id?: string | null
-          content?: string
-          created_at?: string | null
-          excerpt?: string | null
-          featured?: boolean | null
-          featured_image_url?: string | null
-          id?: string
-          meta_description?: string | null
-          meta_keywords?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
-          published?: boolean | null
-          reading_time?: number | null
-          slug?: string
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "articles_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "articles_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       categories: {
         Row: {
           created_at: string | null
@@ -138,75 +60,6 @@ export type Database = {
         }
         Relationships: []
       }
-      profiles: {
-        Row: {
-          created_at: string | null
-          email: string
-          full_name: string | null
-          id: string
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      reviews: {
-        Row: {
-          article_id: string
-          comment: string | null
-          created_at: string | null
-          id: string
-          rating: number
-          user_id: string
-        }
-        Insert: {
-          article_id: string
-          comment?: string | null
-          created_at?: string | null
-          id?: string
-          rating: number
-          user_id: string
-        }
-        Update: {
-          article_id?: string
-          comment?: string | null
-          created_at?: string | null
-          id?: string
-          rating?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       site_settings: {
         Row: {
           about_content: string | null
@@ -216,6 +69,7 @@ export type Database = {
           custom_values: Json | null
           favicon_url: string | null
           hero_image_url: string | null
+          hero_layout: string | null
           hero_subtitle: string | null
           hero_title: string | null
           id: string
@@ -243,6 +97,7 @@ export type Database = {
           custom_values?: Json | null
           favicon_url?: string | null
           hero_image_url?: string | null
+          hero_layout?: string | null
           hero_subtitle?: string | null
           hero_title?: string | null
           id?: string
@@ -270,6 +125,7 @@ export type Database = {
           custom_values?: Json | null
           favicon_url?: string | null
           hero_image_url?: string | null
+          hero_layout?: string | null
           hero_subtitle?: string | null
           hero_title?: string | null
           id?: string
@@ -353,14 +209,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      update_usage_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
-      article_type: "news" | "product_review" | "blog"
-      user_role: "admin" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -475,9 +327,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      article_type: ["news", "product_review", "blog"],
-      user_role: ["admin", "user"],
-    },
+    Enums: {},
   },
 } as const
