@@ -27,17 +27,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session
     const getInitialSession = async () => {
       try {
+        console.log('Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
           return;
         }
         
+        console.log('Initial session:', session?.user?.email || 'No session');
+        
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           if (session?.user) {
-            fetchUserRole(session.user.id);
+            await fetchUserRole(session.user.id);
+          } else {
+            setUserRole(null);
           }
           setLoading(false);
         }
@@ -56,14 +61,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Auth state changed:', event, session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
+          // Use setTimeout to avoid potential deadlocks
+          setTimeout(async () => {
             if (mounted) {
-              fetchUserRole(session.user.id);
+              await fetchUserRole(session.user.id);
             }
           }, 0);
         } else {
@@ -81,33 +87,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log('Fetching user role for:', userId);
+      
+      // First, let's check if we can access the profiles table at all
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, email, full_name')
         .eq('id', userId)
         .single();
       
+      console.log('Profile query result:', { data, error });
+      
       if (error) {
         console.error('Error fetching user role:', error);
+        // If there's an error, let's try to see all profiles (for debugging)
+        const { data: allProfiles, error: allError } = await supabase
+          .from('profiles')
+          .select('*')
+          .limit(5);
+        
+        console.log('All profiles (first 5):', { allProfiles, allError });
         setUserRole('user'); // Default role
         return;
       }
       
-      setUserRole(data?.role || 'user');
+      const role = data?.role || 'user';
+      console.log('User role set to:', role);
+      setUserRole(role);
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Unexpected error fetching user role:', error);
       setUserRole('user'); // Default role
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Attempting sign in for:', email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+      } else {
+        console.log('Sign in successful');
+      }
+      
       return { error };
     } catch (error) {
+      console.error('Sign in exception:', error);
       return { error };
     }
   };
@@ -132,9 +161,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      console.log('Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
+      } else {
+        console.log('Sign out successful');
       }
     } catch (error) {
       console.error('Error signing out:', error);
