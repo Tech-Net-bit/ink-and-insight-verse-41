@@ -57,6 +57,9 @@ const OptimizedImage = ({
     setIsLoaded(false);
   };
 
+  // Fallback to placeholder if src is invalid
+  const imageSrc = src && src.trim() !== '' ? src : placeholder;
+
   return (
     <div className={cn('relative overflow-hidden', className)}>
       {!isLoaded && !isError && (
@@ -65,10 +68,10 @@ const OptimizedImage = ({
       
       <img
         ref={imgRef}
-        src={isInView ? src : placeholder}
+        src={isInView ? imageSrc : placeholder}
         alt={alt}
         className={cn(
-          'transition-opacity duration-300',
+          'transition-opacity duration-300 w-full h-full object-cover',
           isLoaded ? 'opacity-100' : 'opacity-0',
           className
         )}

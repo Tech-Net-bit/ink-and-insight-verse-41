@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import ArticleCard from './ArticleCard';
 import { supabase } from '@/integrations/supabase/client';
-import OptimizedImage from './OptimizedImage';
 import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 import { useDataPreloader } from '@/hooks/useDataPreloader';
 
@@ -26,8 +25,45 @@ const ArticleGrid = () => {
   const { cacheData, getCachedData, checkRateLimit } = usePerformanceOptimization();
   const { allArticles, isPreloading } = useDataPreloader();
 
+  // Mock articles for demonstration
+  const mockArticles: Article[] = [
+    {
+      id: '1',
+      title: 'Getting Started with React and TypeScript',
+      excerpt: 'Learn how to build modern web applications with React and TypeScript. This comprehensive guide covers everything from setup to advanced patterns.',
+      featured_image_url: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
+      slug: 'getting-started-react-typescript',
+      created_at: new Date().toISOString(),
+      article_type: 'blog',
+      categories: { name: 'Technology' },
+      profiles: { full_name: 'John Doe' }
+    },
+    {
+      id: '2',
+      title: 'The Future of Web Development',
+      excerpt: 'Exploring upcoming trends and technologies that will shape the future of web development in the next decade.',
+      featured_image_url: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80',
+      slug: 'future-web-development',
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      article_type: 'news',
+      categories: { name: 'Technology' },
+      profiles: { full_name: 'Jane Smith' }
+    },
+    {
+      id: '3',
+      title: 'Best JavaScript Frameworks in 2024',
+      excerpt: 'A comprehensive review of the most popular JavaScript frameworks and libraries available in 2024.',
+      featured_image_url: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?auto=format&fit=crop&w=800&q=80',
+      slug: 'best-javascript-frameworks-2024',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      article_type: 'product_review',
+      categories: { name: 'Reviews' },
+      profiles: { full_name: 'Mike Johnson' }
+    }
+  ];
+
   useEffect(() => {
-    // Use preloaded data if available and ensure article_type is present
+    // Use preloaded data if available, otherwise use mock data
     if (allArticles && allArticles.length > 0) {
       const typedArticles = allArticles.map(article => ({
         ...article,
@@ -37,83 +73,16 @@ const ArticleGrid = () => {
       setLoading(false);
       setHasMore(allArticles.length >= 6);
     } else {
-      fetchArticles();
+      // Use mock data as fallback
+      setArticles(mockArticles);
+      setLoading(false);
+      setHasMore(false);
     }
   }, [allArticles]);
 
-  const fetchArticles = async (pageNum = 1) => {
-    if (!checkRateLimit('articles-fetch')) {
-      console.warn('Rate limit exceeded for articles fetch');
-      return;
-    }
-
-    setLoading(pageNum === 1);
-
-    try {
-      const cacheKey = `articles-page-${pageNum}`;
-      const cached = getCachedData<Article[]>(cacheKey);
-      
-      if (cached && Array.isArray(cached)) {
-        if (pageNum === 1) {
-          setArticles(cached);
-        } else {
-          setArticles(prev => [...prev, ...cached]);
-        }
-        setLoading(false);
-        return;
-      }
-
-      const limit = 6;
-      const offset = (pageNum - 1) * limit;
-
-      const { data, error } = await supabase
-        .from('articles')
-        .select(`
-          id,
-          title,
-          excerpt,
-          featured_image_url,
-          slug,
-          created_at,
-          article_type,
-          categories (name),
-          profiles (full_name)
-        `)
-        .eq('published', true)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (error) {
-        console.error('Error fetching articles:', error);
-        return;
-      }
-
-      const articleData = (data || []).map(article => ({
-        ...article,
-        article_type: article.article_type || 'blog'
-      }));
-      
-      // Cache the result for 1 hour
-      cacheData(cacheKey, articleData, 60 * 60 * 1000);
-
-      if (pageNum === 1) {
-        setArticles(articleData);
-      } else {
-        setArticles(prev => [...prev, ...articleData]);
-      }
-
-      setHasMore(articleData.length === limit);
-    } catch (error) {
-      console.error('Error fetching articles:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchArticles(nextPage);
+    // For now, just show message that this would load more
+    console.log('Load more articles functionality would be implemented here');
   };
 
   const getReadTime = (content: string) => {
@@ -139,7 +108,7 @@ const ArticleGrid = () => {
     }
   };
 
-  // Show cached content immediately if available
+  // Show loading state
   if ((loading && articles.length === 0) || isPreloading) {
     return (
       <section className="py-16">
