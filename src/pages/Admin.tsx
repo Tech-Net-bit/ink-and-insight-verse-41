@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePerformanceOptimization } from '@/hooks/usePerformanceOptimization';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboard from '@/components/admin/AdminDashboard';
-import PerformanceMonitor from '@/components/PerformanceMonitor';
 
 const Admin = () => {
   const { user, userRole, loading } = useAuth();
@@ -40,12 +39,9 @@ const Admin = () => {
   }
 
   return (
-    <>
-      <AdminLayout>
-        <AdminDashboard />
-      </AdminLayout>
-      <PerformanceMonitor />
-    </>
+    <AdminLayout>
+      <AdminDashboard />
+    </AdminLayout>
   );
 };
 

@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import LazyRoute from "@/components/LazyRoute";
-import PerformanceMonitor from "@/components/PerformanceMonitor";
 
 // Lazy load components for better performance
 const Index = () => import("./pages/Index");
@@ -53,32 +52,29 @@ const AppContent: React.FC = () => {
   }, []);
 
   return (
-    <React.Fragment>
-      <PerformanceMonitor />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LazyRoute component={Index} />} />
-          <Route path="/auth" element={<LazyRoute component={Auth} />} />
-          <Route path="/articles" element={<LazyRoute component={Articles} />} />
-          <Route path="/article/:slug" element={<LazyRoute component={ArticleDetail} />} />
-          <Route path="/categories" element={<LazyRoute component={Categories} />} />
-          <Route path="/about" element={<LazyRoute component={About} />} />
-          <Route path="/admin" element={<LazyRoute component={Admin} />} />
-          
-          {/* Admin routes with nested routing */}
-          <Route path="/admin/*" element={<LazyRoute component={AdminLayout} />}>
-            <Route path="articles" element={<LazyRoute component={ArticleManagement} />} />
-            <Route path="categories" element={<LazyRoute component={CategoryManagement} />} />
-            <Route path="users" element={<LazyRoute component={UserManagement} />} />
-            <Route path="settings" element={<LazyRoute component={SiteSettings} />} />
-            <Route path="database" element={<LazyRoute component={DatabaseManager} />} />
-            <Route path="limits" element={<LazyRoute component={UsageLimits} />} />
-          </Route>
-          
-          <Route path="*" element={<LazyRoute component={NotFound} />} />
-        </Routes>
-      </BrowserRouter>
-    </React.Fragment>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LazyRoute component={Index} />} />
+        <Route path="/auth" element={<LazyRoute component={Auth} />} />
+        <Route path="/articles" element={<LazyRoute component={Articles} />} />
+        <Route path="/article/:slug" element={<LazyRoute component={ArticleDetail} />} />
+        <Route path="/categories" element={<LazyRoute component={Categories} />} />
+        <Route path="/about" element={<LazyRoute component={About} />} />
+        <Route path="/admin" element={<LazyRoute component={Admin} />} />
+        
+        {/* Admin routes with nested routing */}
+        <Route path="/admin/*" element={<LazyRoute component={AdminLayout} />}>
+          <Route path="articles" element={<LazyRoute component={ArticleManagement} />} />
+          <Route path="categories" element={<LazyRoute component={CategoryManagement} />} />
+          <Route path="users" element={<LazyRoute component={UserManagement} />} />
+          <Route path="settings" element={<LazyRoute component={SiteSettings} />} />
+          <Route path="database" element={<LazyRoute component={DatabaseManager} />} />
+          <Route path="limits" element={<LazyRoute component={UsageLimits} />} />
+        </Route>
+        
+        <Route path="*" element={<LazyRoute component={NotFound} />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 

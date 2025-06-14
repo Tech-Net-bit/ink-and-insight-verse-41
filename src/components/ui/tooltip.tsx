@@ -7,7 +7,7 @@ const TooltipProvider = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Provider>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>
 >(({ children, ...props }, ref) => (
-  <TooltipPrimitive.Provider ref={ref} {...props}>
+  <TooltipPrimitive.Provider {...props}>
     {children}
   </TooltipPrimitive.Provider>
 ));
