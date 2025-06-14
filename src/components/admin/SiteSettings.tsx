@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,10 +45,6 @@ const SiteSettings = () => {
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleImageUpload = (field: string) => (url: string) => {
-    handleInputChange(field, url);
   };
 
   if (loading) {
@@ -201,7 +196,7 @@ const SiteSettings = () => {
                 <div>
                   <Label>Hero Background Image</Label>
                   <ImageUpload
-                    onImageUpload={handleImageUpload('hero_image_url')}
+                    onUpload={(url: string) => handleInputChange('hero_image_url', url)}
                     className="mt-2"
                   />
                   {formData?.hero_image_url && (
@@ -274,7 +269,7 @@ const SiteSettings = () => {
                   <div>
                     <Label>Logo</Label>
                     <ImageUpload
-                      onImageUpload={handleImageUpload('logo_url')}
+                      onUpload={(url: string) => handleInputChange('logo_url', url)}
                       className="mt-2"
                     />
                     {formData?.logo_url && (
@@ -290,7 +285,7 @@ const SiteSettings = () => {
                   <div>
                     <Label>Favicon</Label>
                     <ImageUpload
-                      onImageUpload={handleImageUpload('favicon_url')}
+                      onUpload={(url: string) => handleInputChange('favicon_url', url)}
                       className="mt-2"
                     />
                     {formData?.favicon_url && (

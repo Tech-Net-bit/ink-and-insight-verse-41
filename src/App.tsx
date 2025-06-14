@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { useDataPreloader } from "@/hooks/useDataPreloader";
 import { useEffect } from "react";
 import LazyRoute from "@/components/LazyRoute";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
@@ -39,13 +38,6 @@ const queryClient = new QueryClient({
 });
 
 const AppContent = () => {
-  // Preload critical data
-  useDataPreloader({
-    preloadFeatured: true,
-    preloadCategories: true,
-    preloadSettings: true,
-  });
-
   // Register service worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -91,13 +83,13 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
+    <TooltipProvider>
+      <AuthProvider>
         <Toaster />
         <Sonner />
         <AppContent />
-      </TooltipProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

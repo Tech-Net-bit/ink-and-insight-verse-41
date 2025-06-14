@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import OptimizedImage from './OptimizedImage';
-import { useDataPreloader } from '@/hooks/useDataPreloader';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Article {
   id: string;
@@ -15,13 +16,41 @@ interface Article {
   featured_image_url: string;
   slug: string;
   categories: { name: string } | null;
-  profiles: { full_name: string };
+  profiles: { full_name: string } | null;
   created_at: string;
 }
 
 const FeaturedSlider = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const { featuredArticles, isPreloading } = useDataPreloader({ preloadFeatured: true });
+
+  const { data: featuredArticles, isLoading } = useQuery({
+    queryKey: ['articles', 'featured'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('articles')
+          .select(`
+            *,
+            categories!inner(name),
+            profiles!inner(full_name)
+          `)
+          .eq('featured', true)
+          .eq('published', true)
+          .limit(5);
+
+        if (error) {
+          console.error('Error fetching featured articles:', error);
+          return [];
+        }
+
+        return data || [];
+      } catch (error) {
+        console.error('Error in featured articles query:', error);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     if (emblaApi) {
@@ -36,11 +65,9 @@ const FeaturedSlider = () => {
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
 
-  // Cast to Article array for type safety
-  const articles = Array.isArray(featuredArticles) ? featuredArticles as Article[] : [];
+  const articles = Array.isArray(featuredArticles) ? featuredArticles : [];
 
-  // Don't show loading if we have cached articles
-  if (isPreloading && articles.length === 0) {
+  if (isLoading && articles.length === 0) {
     return (
       <div className="relative h-96 bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse rounded-2xl" />
     );
@@ -61,7 +88,7 @@ const FeaturedSlider = () => {
     <div className="relative">
       <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
-          {articles.map((article: Article, index: number) => (
+          {articles.map((article, index: number) => (
             <div key={article.id} className="flex-[0_0_100%] min-w-0">
               <div className="relative h-96 overflow-hidden">
                 <OptimizedImage
@@ -84,7 +111,7 @@ const FeaturedSlider = () => {
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-300">
-                      By {article.profiles?.full_name} • {new Date(article.created_at).toLocaleDateString()}
+                      By {article.profiles?.full_name || 'Unknown'} • {new Date(article.created_at).toLocaleDateString()}
                     </span>
                     <Button variant="secondary" size="sm" asChild>
                       <Link to={`/article/${article.slug}`}>Read More</Link>
