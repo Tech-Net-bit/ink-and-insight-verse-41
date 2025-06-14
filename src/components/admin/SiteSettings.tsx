@@ -48,6 +48,10 @@ const SiteSettings = () => {
     }));
   };
 
+  const handleImageUpload = (field: string) => (url: string) => {
+    handleInputChange(field, url);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -197,7 +201,7 @@ const SiteSettings = () => {
                 <div>
                   <Label>Hero Background Image</Label>
                   <ImageUpload
-                    onUpload={(url) => handleInputChange('hero_image_url', url)}
+                    onImageUpload={handleImageUpload('hero_image_url')}
                     className="mt-2"
                   />
                   {formData?.hero_image_url && (
@@ -270,7 +274,7 @@ const SiteSettings = () => {
                   <div>
                     <Label>Logo</Label>
                     <ImageUpload
-                      onUpload={(url) => handleInputChange('logo_url', url)}
+                      onImageUpload={handleImageUpload('logo_url')}
                       className="mt-2"
                     />
                     {formData?.logo_url && (
@@ -286,7 +290,7 @@ const SiteSettings = () => {
                   <div>
                     <Label>Favicon</Label>
                     <ImageUpload
-                      onUpload={(url) => handleInputChange('favicon_url', url)}
+                      onImageUpload={handleImageUpload('favicon_url')}
                       className="mt-2"
                     />
                     {formData?.favicon_url && (
