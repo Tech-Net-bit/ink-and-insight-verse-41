@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
+          if (mounted) {
+            setLoading(false);
+          }
           return;
         }
         
@@ -88,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching user role for:', userId);
       
-      // First, let's check if we can access the profiles table at all
       const { data, error } = await supabase
         .from('profiles')
         .select('role, email, full_name')
@@ -99,19 +102,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Error fetching user role:', error);
-        // If there's an error, let's try to see all profiles (for debugging)
-        const { data: allProfiles, error: allError } = await supabase
+        
+        // Let's also check if the user exists in profiles at all
+        const { data: allUserProfiles, error: allError } = await supabase
           .from('profiles')
           .select('*')
-          .limit(5);
+          .eq('id', userId);
         
-        console.log('All profiles (first 5):', { allProfiles, allError });
+        console.log('User profile check:', { allUserProfiles, allError });
+        
+        // If no profile exists, let's try to create one
+        if (allError || !allUserProfiles || allUserProfiles.length === 0) {
+          console.log('No profile found, attempting to create one...');
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: userData.user.email || '',
+                full_name: userData.user.user_metadata?.full_name || 'User',
+                role: 'user'
+              })
+              .select()
+              .single();
+            
+            console.log('Profile creation result:', { newProfile, createError });
+            if (!createError && newProfile) {
+              setUserRole(newProfile.role || 'user');
+              return;
+            }
+          }
+        }
+        
         setUserRole('user'); // Default role
         return;
       }
       
       const role = data?.role || 'user';
       console.log('User role set to:', role);
+      console.log('User profile data:', data);
       setUserRole(role);
     } catch (error) {
       console.error('Unexpected error fetching user role:', error);

@@ -15,16 +15,33 @@ const Admin = () => {
   console.log('Admin page - User:', user?.email, 'Role:', userRole, 'Loading:', loading);
 
   useEffect(() => {
+    // Only redirect after loading is complete
+    if (loading) {
+      console.log('Still loading, waiting...');
+      return;
+    }
+
     // Rate limit admin access attempts
-    if (!loading && !checkRateLimit(`admin-access-${user?.id || 'anonymous'}`)) {
+    if (!checkRateLimit(`admin-access-${user?.id || 'anonymous'}`)) {
       console.warn('Rate limit exceeded for admin access');
       return;
     }
 
-    if (!loading && (!user || userRole !== 'admin')) {
-      console.log('Access denied - redirecting to auth. User:', !!user, 'Role:', userRole);
+    // Check authentication and role
+    if (!user) {
+      console.log('No user found, redirecting to auth');
       navigate('/auth');
+      return;
     }
+
+    if (userRole !== 'admin') {
+      console.log('Access denied - user role is:', userRole, 'but needs to be admin');
+      console.log('Full user data:', user);
+      navigate('/auth');
+      return;
+    }
+
+    console.log('Admin access granted for user:', user.email, 'with role:', userRole);
   }, [user, userRole, loading, navigate, checkRateLimit]);
 
   if (loading) {
@@ -45,10 +62,22 @@ const Admin = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-accent/10">
         <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-red-600">Access Denied</h2>
           <p className="text-muted-foreground">
-            Access denied. User: {user?.email || 'Not logged in'}, Role: {userRole || 'None'}
+            User: {user?.email || 'Not logged in'}
           </p>
-          <p className="text-xs text-muted-foreground">Redirecting to authentication...</p>
+          <p className="text-muted-foreground">
+            Role: {userRole || 'None'} (Required: admin)
+          </p>
+          <p className="text-xs text-muted-foreground">
+            If you believe this is an error, check your profile role in the database.
+          </p>
+          <button 
+            onClick={() => navigate('/auth')}
+            className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     );
