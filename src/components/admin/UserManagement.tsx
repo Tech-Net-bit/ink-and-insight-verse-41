@@ -29,15 +29,65 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Fetching users from profiles table...');
+      
+      // First check if the profiles table exists and has data
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      console.log('Profiles query result:', { profiles, profilesError });
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        
+        // If profiles table doesn't exist or has issues, try to get auth users
+        // Note: This won't work in production due to RLS, but helps with debugging
+        try {
+          const { data: authData, error: authError } = await supabase.auth.getUser();
+          console.log('Current auth user:', { authData, authError });
+          
+          if (authData?.user) {
+            // Create a mock user based on current auth user
+            setUsers([{
+              id: authData.user.id,
+              email: authData.user.email || 'Unknown',
+              full_name: authData.user.user_metadata?.full_name || 'Unknown User',
+              role: 'user',
+              created_at: authData.user.created_at || new Date().toISOString()
+            }]);
+          } else {
+            setUsers([]);
+            toast({
+              title: 'No Users Found',
+              description: 'No user profiles found. Make sure users have signed up and profiles are created.',
+              variant: 'destructive',
+            });
+          }
+        } catch (authError) {
+          console.error('Auth error:', authError);
+          setUsers([]);
+        }
+        
+        return;
+      }
+
+      if (!profiles || profiles.length === 0) {
+        console.log('No profiles found in database');
+        setUsers([]);
+        toast({
+          title: 'No Users Found',
+          description: 'No user profiles found. Users need to sign up first.',
+        });
+        return;
+      }
+
+      console.log(`Found ${profiles.length} profiles`);
+      setUsers(profiles || []);
+      
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Unexpected error fetching users:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch users',
@@ -96,6 +146,9 @@ const UserManagement = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
+        <Button onClick={fetchUsers} variant="outline">
+          Refresh
+        </Button>
       </div>
 
       {loading ? (
@@ -109,6 +162,14 @@ const UserManagement = () => {
             </Card>
           ))}
         </div>
+      ) : filteredUsers.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground text-lg">
+              No users found. {users.length === 0 ? 'Users need to sign up first.' : 'Try adjusting your search.'}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4">
           {filteredUsers.map((user) => (

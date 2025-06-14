@@ -90,7 +90,7 @@ export const useSiteSettings = () => {
       // Clean up event listeners
       cleanup.then(cleanupFn => cleanupFn && cleanupFn());
     };
-  }, []); // Empty dependency array to run only once
+  }, []);
 
   const fetchSiteSettings = async () => {
     try {
@@ -119,5 +119,34 @@ export const useSiteSettings = () => {
     }
   };
 
-  return { settings, loading, refetch: fetchSiteSettings };
+  const updateSettings = async (updates: Partial<SiteSettings>) => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .update(updates)
+        .eq('id', settings?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const typedSettings: SiteSettings = {
+        ...data,
+        custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
+        custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
+      };
+
+      setSettings(typedSettings);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('site-settings-updated'));
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Error updating site settings:', error);
+      return { error };
+    }
+  };
+
+  return { settings, loading, refetch: fetchSiteSettings, updateSettings };
 };

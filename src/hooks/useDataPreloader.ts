@@ -59,39 +59,7 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
   const queryClient = useQueryClient();
   const { cacheData, getCachedData } = usePerformanceOptimization();
 
-  // Mock data for when database tables don't exist
-  const mockArticles: Article[] = [
-    {
-      id: '1',
-      title: 'Getting Started with React and TypeScript',
-      excerpt: 'Learn how to build modern web applications with React and TypeScript.',
-      featured_image_url: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
-      slug: 'getting-started-react-typescript',
-      created_at: new Date().toISOString(),
-      article_type: 'blog',
-      categories: { name: 'Technology' },
-      profiles: { full_name: 'John Doe' }
-    },
-    {
-      id: '2',
-      title: 'The Future of Web Development',
-      excerpt: 'Exploring upcoming trends and technologies in web development.',
-      featured_image_url: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80',
-      slug: 'future-web-development',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      article_type: 'news',
-      categories: { name: 'Technology' },
-      profiles: { full_name: 'Jane Smith' }
-    }
-  ];
-
-  const mockCategories: Category[] = [
-    { id: '1', name: 'Technology', slug: 'technology' },
-    { id: '2', name: 'Reviews', slug: 'reviews' },
-    { id: '3', name: 'Tutorials', slug: 'tutorials' }
-  ];
-
-  // Preload featured articles with fall back to mock data
+  // Preload featured articles from database
   const { data: featuredArticles, isLoading: featuredLoading } = useQuery({
     queryKey: ['featured-articles-preload'],
     queryFn: async (): Promise<Article[]> => {
@@ -99,11 +67,38 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (cached) return cached;
 
       try {
-        // Try to fetch from database, but expect it might fail
-        return mockArticles.filter((_, index) => index < 2); // Return first 2 as "featured"
+        console.log('Preloading featured articles...');
+        
+        const { data, error } = await supabase
+          .from('articles')
+          .select(`
+            id,
+            title,
+            excerpt,
+            featured_image_url,
+            slug,
+            created_at,
+            article_type,
+            categories (name),
+            profiles (full_name)
+          `)
+          .eq('publishe d', true)
+          .eq('featured', true)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (error) {
+          console.error('Error preloading featured articles:', error);
+          return [];
+        }
+
+        console.log('Featured articles preloaded:', data?.length || 0);
+        const articles = data || [];
+        cacheData('featured-articles', articles, 60 * 60 * 1000);
+        return articles;
       } catch (error) {
-        console.log('Using mock data for featured articles');
-        return mockArticles.filter((_, index) => index < 2);
+        console.error('Error preloading featured articles:', error);
+        return [];
       }
     },
     enabled: options.preloadFeatured !== false,
@@ -111,7 +106,7 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
     gcTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 
-  // Preload all articles
+  // Preload all articles from database
   const { data: allArticles } = useQuery({
     queryKey: ['all-articles-preload'],
     queryFn: async (): Promise<Article[]> => {
@@ -119,17 +114,44 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (cached) return cached;
 
       try {
-        return mockArticles;
+        console.log('Preloading all articles...');
+        
+        const { data, error } = await supabase
+          .from('articles')
+          .select(`
+            id,
+            title,
+            excerpt,
+            featured_image_url,
+            slug,
+            created_at,
+            article_type,
+            categories (name),
+            profiles (full_name)
+          `)
+          .eq('published', true)
+          .order('created_at', { ascending: false })
+          .limit(12);
+
+        if (error) {
+          console.error('Error preloading all articles:', error);
+          return [];
+        }
+
+        console.log('All articles preloaded:', data?.length || 0);
+        const articles = data || [];
+        cacheData('all-articles', articles, 30 * 60 * 1000);
+        return articles;
       } catch (error) {
-        console.log('Using mock data for all articles');
-        return mockArticles;
+        console.error('Error preloading all articles:', error);
+        return [];
       }
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
     gcTime: 2 * 60 * 60 * 1000, // 2 hours
   });
 
-  // Preload categories
+  // Preload categories from database
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories-preload'],
     queryFn: async (): Promise<Category[]> => {
@@ -137,21 +159,25 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (cached) return cached;
 
       try {
+        console.log('Preloading categories...');
+        
         const { data, error } = await supabase
           .from('categories')
           .select('id, name, slug')
           .order('name');
 
-        if (error || !data || data.length === 0) {
-          console.log('Using mock data for categories');
-          return mockCategories;
+        if (error) {
+          console.error('Error preloading categories:', error);
+          return [];
         }
         
-        cacheData('categories', data, 60 * 60 * 1000); // 1 hour cache
-        return data;
+        console.log('Categories preloaded:', data?.length || 0);
+        const cats = data || [];
+        cacheData('categories', cats, 60 * 60 * 1000);
+        return cats;
       } catch (error) {
-        console.log('Using mock data for categories');
-        return mockCategories;
+        console.error('Error preloading categories:', error);
+        return [];
       }
     },
     enabled: options.preloadCategories !== false,
@@ -159,7 +185,7 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
     gcTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 
-  // Preload site settings
+  // Preload site settings from database
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['site-settings-preload'],
     queryFn: async (): Promise<SiteSettings | null> => {
@@ -167,13 +193,15 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
       if (cached) return cached;
 
       try {
+        console.log('Preloading site settings...');
+        
         const { data, error } = await supabase
           .from('site_settings')
           .select('*')
           .single();
 
         if (error && error.code !== 'PGRST116') {
-          console.log('Site settings not found, using defaults');
+          console.error('Error preloading site settings:', error);
           return null;
         }
         
@@ -183,12 +211,13 @@ export const useDataPreloader = (options: PreloadOptions = {}) => {
             custom_values: Array.isArray(data.custom_values) ? data.custom_values : [],
             custom_team_members: Array.isArray(data.custom_team_members) ? data.custom_team_members : [],
           };
-          cacheData('site-settings', typedSettings, 60 * 60 * 1000); // 1 hour cache
+          console.log('Site settings preloaded');
+          cacheData('site-settings', typedSettings, 60 * 60 * 1000);
           return typedSettings;
         }
         return null;
       } catch (error) {
-        console.log('Error fetching site settings, using defaults');
+        console.error('Error preloading site settings:', error);
         return null;
       }
     },

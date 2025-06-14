@@ -17,21 +17,14 @@ const Categories = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
-  // Mock categories for demonstration
-  const mockCategories: Category[] = [
-    { id: 'all', name: 'All', slug: 'all', description: 'All articles', article_count: 12 },
-    { id: '1', name: 'Technology', slug: 'technology', description: 'Latest tech news and trends', article_count: 8 },
-    { id: '2', name: 'Reviews', slug: 'reviews', description: 'Product and service reviews', article_count: 4 },
-    { id: '3', name: 'Tutorials', slug: 'tutorials', description: 'Step-by-step guides', article_count: 6 },
-    { id: '4', name: 'News', slug: 'news', description: 'Breaking news and updates', article_count: 3 }
-  ];
-
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const fetchCategories = async () => {
     try {
+      console.log('Fetching categories from database...');
+      
       const { data, error } = await supabase
         .from('categories')
         .select(`
@@ -42,29 +35,62 @@ const Categories = () => {
         `)
         .order('name');
 
+      console.log('Categories query result:', { data, error });
+
       if (error) {
         console.error('Error fetching categories:', error);
-        // Use mock data as fallback
-        setCategories(mockCategories);
+        setCategories([]);
         setLoading(false);
         return;
       }
 
       if (data && data.length > 0) {
-        // Add "All" category at the beginning
+        console.log(`Found ${data.length} categories`);
+        
+        // Get article counts for each category
+        const categoriesWithCounts = await Promise.all(
+          data.map(async (category) => {
+            try {
+              const { count } = await supabase
+                .from('articles')
+                .select('*', { count: 'exact', head: true })
+                .eq('category_id', category.id)
+                .eq('published', true);
+
+              return {
+                ...category,
+                article_count: count || 0,
+              };
+            } catch (error) {
+              console.error(`Error getting count for category ${category.name}:`, error);
+              return {
+                ...category,
+                article_count: 0,
+              };
+            }
+          })
+        );
+
+        // Add "All" category at the beginning with total count
+        const totalArticles = categoriesWithCounts.reduce((sum, cat) => sum + (cat.article_count || 0), 0);
         const allCategories = [
-          { id: 'all', name: 'All', slug: 'all', description: 'All articles', article_count: 0 },
-          ...data.map(cat => ({ ...cat, article_count: 0 })),
+          { id: 'all', name: 'All', slug: 'all', description: 'All articles', article_count: totalArticles },
+          ...categoriesWithCounts,
         ];
+        
         setCategories(allCategories);
       } else {
-        // Use mock data if no categories found
-        setCategories(mockCategories);
+        console.log('No categories found in database');
+        // Just show "All" category with 0 count
+        setCategories([
+          { id: 'all', name: 'All', slug: 'all', description: 'All articles', article_count: 0 }
+        ]);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      // Use mock data as fallback
-      setCategories(mockCategories);
+      console.error('Unexpected error fetching categories:', error);
+      setCategories([
+        { id: 'all', name: 'All', slug: 'all', description: 'All articles', article_count: 0 }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -125,30 +151,38 @@ const Categories = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[
-            { icon: "💻", title: "Tech Reviews", desc: "Latest gadgets", slug: "reviews" },
-            { icon: "🤖", title: "AI & Future", desc: "Tomorrow's tech", slug: "ai-ml" },
-            { icon: "📱", title: "Mobile Tech", desc: "Smartphones & apps", slug: "mobile" },
-            { icon: "🎮", title: "Gaming", desc: "Latest in gaming", slug: "gaming" },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className={`text-center p-6 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-lg transition-all duration-300 group cursor-pointer ${
-                activeCategory === item.slug ? 'border-primary shadow-lg' : ''
-              }`}
-              onClick={() => setActiveCategory(item.slug)}
-            >
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">
-                {item.icon}
+        {categories.length <= 1 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg mb-4">
+              No categories available yet.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Categories will appear here once they are created in the admin panel.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {categories.slice(1).map((category) => (
+              <div
+                key={category.id}
+                className={`text-center p-6 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-lg transition-all duration-300 group cursor-pointer ${
+                  activeCategory === category.slug ? 'border-primary shadow-lg' : ''
+                }`}
+                onClick={() => setActiveCategory(category.slug)}
+              >
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">
+                  📁
+                </div>
+                <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors duration-200">
+                  {category.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {category.description || `${category.article_count} articles`}
+                </p>
               </div>
-              <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors duration-200">
-                {item.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">{item.desc}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
